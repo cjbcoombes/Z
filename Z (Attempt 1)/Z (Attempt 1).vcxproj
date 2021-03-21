@@ -21,6 +21,12 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="VM\vm.h" />
+    <ClInclude Include="VM\vmassemble.h" />
+    <ClInclude Include="VM\vmexec.h" />
+    <ClInclude Include="VM\vmsetup.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
