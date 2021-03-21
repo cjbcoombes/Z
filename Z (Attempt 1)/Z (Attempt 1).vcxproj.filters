@@ -15,7 +15,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VM\vm.h">
+    <ClInclude Include="VM\vm.cpp">
       <Filter>VM</Filter>
     </ClInclude>
     <ClInclude Include="VM\vmassemble.h">
@@ -24,7 +24,7 @@
     <ClInclude Include="VM\vmexec.h">
       <Filter>VM</Filter>
     </ClInclude>
-    <ClInclude Include="VM\vmsetup.h">
+    <ClInclude Include="VM\vm.h">
       <Filter>VM</Filter>
     </ClInclude>
   </ItemGroup>

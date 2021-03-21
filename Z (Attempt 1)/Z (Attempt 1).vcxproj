@@ -22,10 +22,10 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VM\vm.h" />
+    <ClInclude Include="VM\vm.cpp" />
     <ClInclude Include="VM\vmassemble.h" />
     <ClInclude Include="VM\vmexec.h" />
-    <ClInclude Include="VM\vmsetup.h" />
+    <ClInclude Include="VM\vm.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
