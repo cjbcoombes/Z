@@ -10,7 +10,7 @@ The bytecode has several general-purpose registers that can hold any 32-bit valu
 There are also several special-purpose registers
 
 ID      | Register      | Purpose
--       | -             | -
+---     | ---           | ---
 N/A     | N/A           | Instruction pointer (not accessible by program)
 0       | BP            | Stack base pointer
 1 .. 31 | R0 .. R31     | General Purpose
@@ -19,7 +19,7 @@ N/A     | N/A           | Instruction pointer (not accessible by program)
 ##### Instructions
 
 Code    | Instruction   | Arguments     | Action
--       | -             | -             | -
+---     | ---           | ---           | ---
 0x00    | NOP           | N/A           | Nothing
 0x01    | HALT          | N/A           | Halts the program
 
