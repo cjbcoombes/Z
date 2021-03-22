@@ -14,8 +14,8 @@ namespace vm {
 	// Types and sizes of various items
 	namespace types {
 		typedef uint8_t register_t;
+		typedef uint8_t opcode_t;
 	}
-
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Custom exceptions
@@ -27,12 +27,14 @@ namespace vm {
 		// Error type enum
 		const enum ErrorType {
 			UNKNOWN_ERROR,
-			MAX_STR_SIZE_REACHED
+			MAX_STR_SIZE_REACHED,
+			UNKNOWN_OPCODE
 		};
 
 		static constexpr const char* const test[] = { 
 			"Unknown error",
-			"The maximum size of a contiguous string (no whitespace) has been reached"
+			"The maximum size of a contiguous string (no whitespace) has been reached",
+			"Unknown opcode"
 		};
 
 		const ErrorType type;
@@ -88,8 +90,10 @@ namespace vm {
 			file.clear();
 			file.seekg(0, std::ios_base::beg);
 			file.ignore(std::numeric_limits<std::streamsize>::max());
-
+		#pragma warning( push )
+		#pragma warning( disable: 4244 )// Lossy conversion from std::streamsize to unsigned int
 			size = file.gcount();
+		#pragma warning( pop )
 			if (size > MAX_BUFFER_SIZE) 
 				size = MAX_BUFFER_SIZE;
 
@@ -114,11 +118,33 @@ namespace vm {
 	};
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// ## Opcodes
+
+	// Use of namespace instead of enum class allows for implicit casting
+	namespace Opcode {
+		enum {
+			NOP,
+			HALT,
+			MOV,
+			MOVL
+		};
+
+		const char* const strings[] = {
+			"nop",
+			"halt",
+			"mov",
+			"movl"
+		};
+
+		constexpr int count = sizeof(strings) / sizeof(char*);
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Assembly function declarations
 	
 	struct AssemblyOptions {
-		uint8_t flags;
+		uint8_t flags = 0;
 	};
-	void Assemble(std::iostream azm, std::ostream eze, AssemblyOptions options);
-	void Assemble(std::iostream azm, std::ostream eze, AssemblyOptions options, std::ostream debug);
+	void Assemble(std::iostream& azm, std::ostream& eze, AssemblyOptions options);
+	void Assemble(std::iostream& azm, std::ostream& eze, AssemblyOptions options, std::ostream& debug);
 }

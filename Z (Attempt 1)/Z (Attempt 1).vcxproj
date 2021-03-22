@@ -20,12 +20,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="VM\vm.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VM\vm.cpp" />
     <ClInclude Include="VM\vmassemble.h" />
     <ClInclude Include="VM\vmexec.h" />
     <ClInclude Include="VM\vm.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

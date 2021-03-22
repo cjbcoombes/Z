@@ -13,11 +13,11 @@
     <ClCompile Include="main.cpp">
       <Filter>Main</Filter>
     </ClCompile>
+    <ClCompile Include="VM\vm.cpp">
+      <Filter>VM</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VM\vm.cpp">
-      <Filter>VM</Filter>
-    </ClInclude>
     <ClInclude Include="VM\vmassemble.h">
       <Filter>VM</Filter>
     </ClInclude>
@@ -27,5 +27,8 @@
     <ClInclude Include="VM\vm.h">
       <Filter>VM</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>
