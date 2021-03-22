@@ -11,17 +11,21 @@ There are also several special-purpose registers
 
 ID      | Register      | Purpose
 ---     | ---           | ---
-N/A     | N/A           | Instruction pointer (not accessible by program)
+N/A     | IP            | Instruction pointer (not accessible by program)
 0       | BP            | Stack base pointer
 1 .. 31 | R0 .. R31     | General Purpose
 
 
 ##### Instructions
 
-Code    | Instruction   | Arguments     | Action
----     | ---           | ---           | ---
-0x00    | NOP           | N/A           | Nothing
-0x01    | HALT          | N/A           | Halts the program
+Code    | Instruction   | Arguments                 | Action
+---     | ---           | ---                       | ---
+0x00    | nop           | N/A                       | Nothing
+0x01    | halt          | N/A                       | Halts the program
+0x??    | mov           | [reg1], [reg2]            | Copies the value of [reg1] to [reg2]
+0x??    | movl          | [reg1], [lit]             | Puts the literal value [lit] in [reg1]
+0x??    | iadd          | [reg1], [reg2], [reg3]    | Adds the values from [reg2] and [reg3] into [reg1] as integers
+
 
 ##### Stack
 
@@ -30,6 +34,6 @@ Code    | Instruction   | Arguments     | Action
 ; Adds 16 and -2, stores the result on the stack
 movl R0, 0x000000F0 (decimal 16)
 movl R1, 0xFFFFFFFE (decimal -2)
-add R0, R0, R1
-store R0, BP, 0xFFFFFFFFB (decimal -4)
+iadd R0, R0, R1
+store R0, BP, 0xFFFFFFFFC (decimal -4)
 ```
