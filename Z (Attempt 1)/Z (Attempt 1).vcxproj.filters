@@ -27,6 +27,12 @@
     <ClInclude Include="VM\vm.h">
       <Filter>VM</Filter>
     </ClInclude>
+    <ClInclude Include="VM\vmassembledefs.h">
+      <Filter>VM</Filter>
+    </ClInclude>
+    <ClInclude Include="VM\vmexecdefs.h">
+      <Filter>VM</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

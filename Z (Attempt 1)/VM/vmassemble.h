@@ -1,26 +1,6 @@
 // Assemble hand-written bytecode(.azm) into binary bytecode(.eze)
 #include "vm.h"
-
-#ifndef VM_ASSEMBLE_INCLUDED
-void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
-	const char* curr;
-	int j;
-	for (opcode = 0; opcode < vm::Opcode::count; opcode++) {
-		curr = vm::Opcode::strings[opcode];
-		j = 0;
-		while (true) {
-			if (str[j] != curr[j])
-				goto next;
-
-			if (str[j] == '\0')
-				return;
-		}
-	next:;
-	}
-
-	throw vm::AssemblyError(vm::AssemblyError::UNKNOWN_OPCODE);
-}
-#endif
+#include "vmassembledefs.h"
 
 void vm::Assemble(std::iostream& azm,
 				  std::ostream& eze,
@@ -38,22 +18,58 @@ void vm::Assemble(std::iostream& azm,
 	char c;
 
 	opcode_t opcode = NOP;
+	register_t reg = 0;
+	literal_t lit = 0;
 	int argc = 0;
 
 	bool end = false;
+	bool isComment = false;
+	int pCount = 0;
 	azm.seekg(0);
+	eze.seekp(0);
+
+#ifdef VM_DEBUG
+	debug << "Byteode assembly debug:";
+#endif
 	while (!end) {
 		azm.get(c);
 		end = azm.eof();
 
-		if (c == ' ' || c == '\n' || c == '\t' || end) {
+		if (!end) {
+			if (c == ';') {
+				isComment = true;
+			} else if (c == '\n') {
+				if (isComment) {
+					isComment = false;
+					continue;
+				}
+			} if (c == '(') {
+				pCount++;
+			} else if (c == ')') {
+				if (!(pCount--)) {
+					THROW(UNBALANCED_PARENS);
+				}
+				continue;
+			}
+		}
+
+		if (pCount < 0) {
+			THROW(UNBALANCED_PARENS);
+		} else if (pCount > 0 || isComment) {
+			continue;
+		} 
+		
+		if (c == ' ' || c == ',' || c == '\n' || c == '\t' || end) {
 			if (len == 0)
 				continue;
+			str[len++] = '\0';
 
-			if (opcode == NOP) {
-				str[len++] = '\0';
-
+			if (opcode == NOP || args[opcode][argc] == ARG_NONE) {
+			#ifdef VM_DEBUG
+				debug << '\n';
+			#endif
 				parseOpcode(opcode, str);
+				eze.write(TO_CHAR(opcode), sizeof(opcode_t));
 				argc = 0;
 
 			#ifdef VM_DEBUG
@@ -64,22 +80,32 @@ void vm::Assemble(std::iostream& azm,
 					case ARG_NONE:
 						argc = MAX_ARGS;
 						break;
+					case ARG_REGISTER:
+						parseRegister(reg, str);
+						eze.write(TO_CHAR(reg), sizeof(register_t));
+					#ifdef VM_DEBUG
+						debug << str << ' ';
+					#endif
+						break;
+					case ARG_HEX_LITERAL:
+						parseLiteral(lit, str);
+						eze.write(TO_CHAR(lit), sizeof(literal_t));
+					#ifdef VM_DEBUG
+						debug << str << ' ';
+					#endif
+						break;
 				}
 				if (argc++ >= MAX_ARGS) {
-				#ifdef VM_DEBUG
-					debug << '\n';
-				#endif
 					opcode = NOP;
 				}
 			}
 			len = 0;
 		} else {
 			if (len >= STR_SIZE - 2) {
-				throw vm::AssemblyError(vm::AssemblyError::MAX_STR_SIZE_REACHED);
+				THROW(MAX_STR_SIZE_REACHED);
 			}
+
 			str[len++] = c;
 		}
 	}
 }
-
-#define VM_ASSEMBLE_INCLUDED

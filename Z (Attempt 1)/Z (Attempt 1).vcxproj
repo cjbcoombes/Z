@@ -24,8 +24,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VM\vmassemble.h" />
+    <ClInclude Include="VM\vmassembledefs.h" />
     <ClInclude Include="VM\vmexec.h" />
     <ClInclude Include="VM\vm.h" />
+    <ClInclude Include="VM\vmexecdefs.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <sstream>
 static_assert(sizeof(void*) == 4, "No workaround for non-32-bit pointers");
 #define VM_DEBUG
 
@@ -15,6 +16,7 @@ namespace vm {
 	namespace types {
 		typedef uint8_t register_t;
 		typedef uint8_t opcode_t;
+		typedef uint32_t literal_t;
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,13 +30,17 @@ namespace vm {
 		const enum ErrorType {
 			UNKNOWN_ERROR,
 			MAX_STR_SIZE_REACHED,
-			UNKNOWN_OPCODE
+			UNKNOWN_OPCODE,
+			UNBALANCED_PARENS,
+			INVALID_REGISTER,
+			INVALID_LITERAL
 		};
 
 		static constexpr const char* const test[] = { 
 			"Unknown error",
 			"The maximum size of a contiguous string (no whitespace) has been reached",
-			"Unknown opcode"
+			"Unknown opcode",
+			"Unbalanced parentheses"
 		};
 
 		const ErrorType type;
@@ -151,6 +157,15 @@ namespace vm {
 
 		// Number of opcodes
 		constexpr int count = sizeof(strings) / sizeof(char*);
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// ## Registers
+
+	namespace Register {
+		enum {
+			BP = 0
+		};
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
