@@ -77,17 +77,17 @@ void vm::Assemble(std::iostream& azm,
 			#endif
 			} else {
 				switch (args[opcode][argc]) {
-					case ARG_NONE:
+					case ArgType::ARG_NONE:
 						argc = MAX_ARGS;
 						break;
-					case ARG_REGISTER:
+					case ArgType::ARG_REG:
 						parseRegister(reg, str);
 						eze.write(TO_CHAR(reg), sizeof(register_t));
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
 						break;
-					case ARG_HEX_LITERAL:
+					case ArgType::ARG_LIT32:
 						parseLiteral(lit, str);
 						eze.write(TO_CHAR(lit), sizeof(literal_t));
 					#ifdef VM_DEBUG

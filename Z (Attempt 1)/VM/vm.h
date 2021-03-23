@@ -17,6 +17,8 @@ namespace vm {
 		typedef uint8_t register_t;
 		typedef uint8_t opcode_t;
 		typedef uint32_t literal_t;
+		typedef int8_t offset_t;
+		typedef uint32_t address_t;
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,28 +133,58 @@ namespace vm {
 		// Enum for opcodes
 		enum {
 			NOP,
+			//
 			HALT,
+			//
 			MOV,
-			MOVL
+			MOVL,
+			//
+			LOAD,
+			STORE,
+			//
+			JMP,
+			FJMP
 		};
 
 		// Strings for opcodes
 		const char* const strings[] = {
 			"nop",
+			//
 			"halt",
+			//
 			"mov",
-			"movl"
+			"movl",
+			//
+			"load",
+			"store",
+			//
+			"jmp",
+			"fjmp"
 		};
 
 		constexpr int MAX_ARGS = 3;
-		constexpr uint8_t ARG_NONE = 0;
-		constexpr uint8_t ARG_REGISTER = 1;
-		constexpr uint8_t ARG_HEX_LITERAL = 2;
-		const uint8_t args[][MAX_ARGS] = {
-			{0, 0, 0},
-			{0, 0, 0},
-			{1, 1, 0},
-			{1, 2, 0}
+		namespace ArgType {
+			enum {
+				ARG_NONE,	// 0
+				ARG_REG,	// 1
+				ARG_LIT32,	// 2
+				ARG_ADDR,	// 3
+				ARG_OFF,	// 4
+			};
+		}
+		const int args[][MAX_ARGS] = {
+			{0, 0, 0},// NOP
+			//
+			{0, 0, 0},// HALT
+			//
+			{1, 1, 0},// MOV
+			{1, 2, 0},// MOVL
+			//
+			{1, 1, 4},// LOAD
+			{1, 4, 1},// STORE
+			//
+			{4, 0, 0},// JMP
+			{3, 0, 0},// FJMP
 		};
 
 		// Number of opcodes
