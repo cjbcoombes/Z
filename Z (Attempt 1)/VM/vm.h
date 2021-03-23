@@ -122,6 +122,7 @@ namespace vm {
 
 	// Use of namespace instead of enum class allows for implicit casting
 	namespace Opcode {
+		// Enum for opcodes
 		enum {
 			NOP,
 			HALT,
@@ -129,6 +130,7 @@ namespace vm {
 			MOVL
 		};
 
+		// Strings for opcodes
 		const char* const strings[] = {
 			"nop",
 			"halt",
@@ -136,6 +138,18 @@ namespace vm {
 			"movl"
 		};
 
+		constexpr int MAX_ARGS = 3;
+		constexpr uint8_t ARG_NONE = 0;
+		constexpr uint8_t ARG_REGISTER = 1;
+		constexpr uint8_t ARG_HEX_LITERAL = 2;
+		const uint8_t args[][MAX_ARGS] = {
+			{0, 0, 0},
+			{0, 0, 0},
+			{1, 1, 0},
+			{1, 2, 0}
+		};
+
+		// Number of opcodes
 		constexpr int count = sizeof(strings) / sizeof(char*);
 	}
 

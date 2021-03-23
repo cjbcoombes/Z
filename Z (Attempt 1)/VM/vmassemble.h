@@ -11,7 +11,7 @@ void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
 		while (true) {
 			if (str[j] != curr[j])
 				goto next;
-			
+
 			if (str[j] == '\0')
 				return;
 		}
@@ -38,6 +38,7 @@ void vm::Assemble(std::iostream& azm,
 	char c;
 
 	opcode_t opcode = NOP;
+	int argc = 0;
 
 	bool end = false;
 	azm.seekg(0);
@@ -49,14 +50,29 @@ void vm::Assemble(std::iostream& azm,
 			if (len == 0)
 				continue;
 
-			str[len++] = '\0';
+			if (opcode == NOP) {
+				str[len++] = '\0';
 
-			parseOpcode(opcode, str);
+				parseOpcode(opcode, str);
+				argc = 0;
 
-		#ifdef VM_DEBUG
-			debug << vm::Opcode::strings[opcode] << ' ';
-		#endif
-
+			#ifdef VM_DEBUG
+				debug << vm::Opcode::strings[opcode] << ' ';
+			#endif
+			} else {
+				switch (args[opcode][argc]) {
+					case ARG_NONE:
+						argc = MAX_ARGS;
+						break;
+				}
+				if (argc++ >= MAX_ARGS) {
+				#ifdef VM_DEBUG
+					debug << '\n';
+				#endif
+					opcode = NOP;
+				}
+			}
+			len = 0;
 		} else {
 			if (len >= STR_SIZE - 2) {
 				throw vm::AssemblyError(vm::AssemblyError::MAX_STR_SIZE_REACHED);
