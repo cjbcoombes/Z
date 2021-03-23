@@ -20,6 +20,7 @@ void vm::Assemble(std::iostream& azm,
 	opcode_t opcode = NOP;
 	register_t reg = 0;
 	literal_t lit = 0;
+	address_t addr = 0;
 	int argc = 0;
 
 	bool end = false;
@@ -29,7 +30,7 @@ void vm::Assemble(std::iostream& azm,
 	eze.seekp(0);
 
 #ifdef VM_DEBUG
-	debug << "Byteode assembly debug:";
+	debug << "Bytecode assembly debug:";
 #endif
 	while (!end) {
 		azm.get(c);
@@ -64,7 +65,7 @@ void vm::Assemble(std::iostream& azm,
 				continue;
 			str[len++] = '\0';
 
-			if (opcode == NOP || args[opcode][argc] == ARG_NONE) {
+			if (opcode == NOP || args[opcode][argc] == ArgType::ARG_NONE) {
 			#ifdef VM_DEBUG
 				debug << '\n';
 			#endif
@@ -80,6 +81,7 @@ void vm::Assemble(std::iostream& azm,
 					case ArgType::ARG_NONE:
 						argc = MAX_ARGS;
 						break;
+
 					case ArgType::ARG_REG:
 						parseRegister(reg, str);
 						eze.write(TO_CHAR(reg), sizeof(register_t));
@@ -87,6 +89,7 @@ void vm::Assemble(std::iostream& azm,
 						debug << str << ' ';
 					#endif
 						break;
+
 					case ArgType::ARG_LIT32:
 						parseLiteral(lit, str);
 						eze.write(TO_CHAR(lit), sizeof(literal_t));
@@ -94,6 +97,16 @@ void vm::Assemble(std::iostream& azm,
 						debug << str << ' ';
 					#endif
 						break;
+
+					case ArgType::ARG_ADDR:
+						parseAddress(addr, str);
+						eze.write(TO_CHAR(addr), sizeof(address_t));
+					#ifdef VM_DEBUG
+						debug << str << ' ';
+					#endif
+						break;
+
+					// TODO: ARG_OFF
 				}
 				if (argc++ >= MAX_ARGS) {
 					opcode = NOP;

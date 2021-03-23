@@ -29,8 +29,10 @@ int main(int argc, const char* args[]) {
 	try {
 		vm::Assemble(azm, eze, vm::AssemblyOptions(), std::cout);
 	} catch (vm::AssemblyError e) {
-		std::cout << e.what() << "\n\n";
+		std::cout << e.what() << "\n\n\n";
 		return 1;
 	}
+
+	std::cout << "\n\n\n";
 	return 0;
 }

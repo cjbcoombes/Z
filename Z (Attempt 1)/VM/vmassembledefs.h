@@ -5,11 +5,10 @@
 #define TO_CHAR(x) \
 	reinterpret_cast<char*>(&(x))
 
-// #ifndef VM_ASSEMBLE_INCLUDED
 template<typename T>
 bool parseNumber(T& num, char* str) {
-	static std::stringstream convStream;
-	static int16_t convChar;
+	std::stringstream convStream;
+	int16_t convChar;
 	convStream.str("");
 	convStream.clear();
 	convStream << std::hex << str;
@@ -44,10 +43,12 @@ void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
 }
 
 void parseRegister(vm::types::register_t& reg, char* const& str) {
+	vm::types::register_t temp;
 	if (str[0] == 'R') {
-		if (!parseNumber<vm::types::register_t>(reg, str + 1)) {
+		if (!parseNumber<vm::types::register_t>(temp, str + 1)) {
 			THROW(INVALID_REGISTER);
 		}
+		reg = temp + vm::Register::GP_REGISTER_OFFSET;
 	} else if (str[0] == 'B' && str[1] == 'P' && str[2] == '\0') {
 		reg = vm::Register::BP;
 	}
@@ -56,5 +57,11 @@ void parseRegister(vm::types::register_t& reg, char* const& str) {
 void parseLiteral(vm::types::literal_t& lit, char* const& str) {
 	if (!parseNumber<vm::types::literal_t>(lit, str)) {
 		THROW(INVALID_LITERAL);
+	}
+}
+
+void parseAddress(vm::types::address_t& lit, char* const& str) {
+	if (!parseNumber<vm::types::address_t>(lit, str)) {
+		THROW(INVALID_ADDRESS);
 	}
 }

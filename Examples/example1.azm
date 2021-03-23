@@ -1,6 +1,5 @@
-movl R0, 0x000000F0 (decimal 16); Comment?
-; Co ; mm (ent?
-; ) Yes
+; Add 16 and -2, store on stack
+movl R0, 0x000000F0 (decimal 16)
 movl R1, 0xFFFFFFFE (decimal -2)
-; iadd R0, R0, R1     ; Co
-; store R0, BP, 0xFFFFFFFFB (decimal -4)
+iadd R0, R0, R1
+store R0, BP, 0xFFFFFFFFB (decimal -4)

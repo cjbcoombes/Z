@@ -35,7 +35,8 @@ namespace vm {
 			UNKNOWN_OPCODE,
 			UNBALANCED_PARENS,
 			INVALID_REGISTER,
-			INVALID_LITERAL
+			INVALID_LITERAL,
+			INVALID_ADDRESS
 		};
 
 		static constexpr const char* const test[] = { 
@@ -143,7 +144,9 @@ namespace vm {
 			STORE,
 			//
 			JMP,
-			FJMP
+			FJMP,
+			//
+			IADD
 		};
 
 		// Strings for opcodes
@@ -159,7 +162,9 @@ namespace vm {
 			"store",
 			//
 			"jmp",
-			"fjmp"
+			"fjmp",
+			//
+			"iadd"
 		};
 
 		constexpr int MAX_ARGS = 3;
@@ -180,11 +185,13 @@ namespace vm {
 			{1, 1, 0},// MOV
 			{1, 2, 0},// MOVL
 			//
-			{1, 1, 4},// LOAD
-			{1, 4, 1},// STORE
+			{1, 1, 3},// LOAD
+			{1, 3, 1},// STORE
 			//
 			{4, 0, 0},// JMP
 			{3, 0, 0},// FJMP
+			//
+			{1, 1, 1},// IADD
 		};
 
 		// Number of opcodes
@@ -195,6 +202,7 @@ namespace vm {
 	// ## Registers
 
 	namespace Register {
+		constexpr int GP_REGISTER_OFFSET = 1;
 		enum {
 			BP = 0
 		};
