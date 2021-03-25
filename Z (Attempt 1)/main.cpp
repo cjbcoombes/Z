@@ -24,11 +24,20 @@ int main(int argc, const char* args[]) {
 	TRY_OPEN_FILE(azm, "..\\Examples\\example1.azm", std::ios::in);
 
 	std::fstream eze;
-	TRY_OPEN_FILE(eze, "..\\Examples\\example1.eze", std::ios::out | std::ios::binary);
+	TRY_OPEN_FILE(eze, "..\\Examples\\example1.eze", std::ios::out | std::ios::in | std::ios::binary);
 
 	try {
 		vm::Assemble(azm, eze, vm::AssemblyOptions(), std::cout);
 	} catch (vm::AssemblyError e) {
+		std::cout << e.what() << "\n\n\n";
+		return 1;
+	}
+
+	std::cout << "\n\n";
+
+	try {
+		vm::Exec(eze, vm::ExecOptions(), std::cout);
+	} catch (vm::ExecError e) {
 		std::cout << e.what() << "\n\n\n";
 		return 1;
 	}

@@ -13,7 +13,8 @@ ID      | Register      | Purpose
 ---     | ---           | ---
 N/A     | IP            | Instruction pointer (not accessible by program)
 0       | BP            | Stack base pointer
-1 .. 31 | R1 .. R31     | General Purpose
+1       | CP            | Pointer to base of constant table
+2 .. 31 | R2 .. R31     | General Purpose
 
 
 ##### Instructions

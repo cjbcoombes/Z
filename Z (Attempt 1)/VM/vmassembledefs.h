@@ -1,9 +1,8 @@
 #pragma once
-#define THROW(x) \
-	throw vm::AssemblyError(vm::AssemblyError::x)
+#include "vm.h"
 
-#define TO_CHAR(x) \
-	reinterpret_cast<char*>(&(x))
+#define ASM_THROW(x) \
+	throw vm::AssemblyError(vm::AssemblyError::x)
 
 template<typename T>
 bool parseNumber(T& num, char* str) {
@@ -39,29 +38,31 @@ void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
 	next:;
 	}
 
-	THROW(UNKNOWN_OPCODE);
+	ASM_THROW(UNKNOWN_OPCODE);
 }
 
 void parseRegister(vm::types::register_t& reg, char* const& str) {
 	vm::types::register_t temp;
 	if (str[0] == 'R') {
 		if (!parseNumber<vm::types::register_t>(temp, str + 1)) {
-			THROW(INVALID_REGISTER);
+			ASM_THROW(INVALID_REGISTER);
 		}
 		reg = temp + vm::Register::GP_REGISTER_OFFSET;
 	} else if (str[0] == 'B' && str[1] == 'P' && str[2] == '\0') {
+		reg = vm::Register::BP;
+	} else if (str[0] == 'C' && str[1] == 'P' && str[2] == '\0') {
 		reg = vm::Register::BP;
 	}
 }
 
 void parseLiteral(vm::types::literal_t& lit, char* const& str) {
 	if (!parseNumber<vm::types::literal_t>(lit, str)) {
-		THROW(INVALID_LITERAL);
+		ASM_THROW(INVALID_LITERAL);
 	}
 }
 
 void parseAddress(vm::types::address_t& lit, char* const& str) {
 	if (!parseNumber<vm::types::address_t>(lit, str)) {
-		THROW(INVALID_ADDRESS);
+		ASM_THROW(INVALID_ADDRESS);
 	}
 }

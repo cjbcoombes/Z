@@ -1,5 +1,4 @@
 // Assemble hand-written bytecode(.azm) into binary bytecode(.eze)
-#include "vm.h"
 #include "vmassembledefs.h"
 
 void vm::Assemble(std::iostream& azm,
@@ -30,7 +29,7 @@ void vm::Assemble(std::iostream& azm,
 	eze.seekp(0);
 
 #ifdef VM_DEBUG
-	debug << "Bytecode assembly debug:";
+	debug << STRM_DEFAULT << "Bytecode assembly debug:";
 #endif
 	while (!end) {
 		azm.get(c);
@@ -48,14 +47,14 @@ void vm::Assemble(std::iostream& azm,
 				pCount++;
 			} else if (c == ')') {
 				if (!(pCount--)) {
-					THROW(UNBALANCED_PARENS);
+					ASM_THROW(UNBALANCED_PARENS);
 				}
 				continue;
 			}
 		}
 
 		if (pCount < 0) {
-			THROW(UNBALANCED_PARENS);
+			ASM_THROW(UNBALANCED_PARENS);
 		} else if (pCount > 0 || isComment) {
 			continue;
 		} 
@@ -90,7 +89,7 @@ void vm::Assemble(std::iostream& azm,
 					#endif
 						break;
 
-					case ArgType::ARG_LIT32:
+					case ArgType::ARG_LIT:
 						parseLiteral(lit, str);
 						eze.write(TO_CHAR(lit), sizeof(literal_t));
 					#ifdef VM_DEBUG
@@ -115,10 +114,14 @@ void vm::Assemble(std::iostream& azm,
 			len = 0;
 		} else {
 			if (len >= STR_SIZE - 2) {
-				THROW(MAX_STR_SIZE_REACHED);
+				ASM_THROW(MAX_STR_SIZE_REACHED);
 			}
 
 			str[len++] = c;
 		}
 	}
+
+#ifdef VM_DEBUG
+	debug << '\n';
+#endif
 }

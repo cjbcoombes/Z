@@ -2,11 +2,22 @@
 #pragma once
 #include <exception>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <limits>
 #include <sstream>
 static_assert(sizeof(void*) == 4, "No workaround for non-32-bit pointers");
+
 #define VM_DEBUG
+
+#define TO_CHAR(x) \
+	reinterpret_cast<char*>(&(x))
+
+#define STRM_DEFAULT \
+	std::right << std::setfill(' ') << std::nouppercase << std::dec
+
+#define STRM_HEX \
+	std::right << std::setfill('0') << std::uppercase << std::hex
 
 namespace vm {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,7 +34,7 @@ namespace vm {
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Custom exceptions
-	
+
 	// Error during assembly
 	class AssemblyError : public std::exception {
 	public:
@@ -39,7 +50,7 @@ namespace vm {
 			INVALID_ADDRESS
 		};
 
-		static constexpr const char* const test[] = { 
+		static constexpr const char* const test[] = {
 			"Unknown error",
 			"The maximum size of a contiguous string (no whitespace) has been reached",
 			"Unknown opcode",
@@ -58,22 +69,24 @@ namespace vm {
 	};
 
 	// Error during execution
-	class ExecutionError : public std::exception {
+	class ExecError : public std::exception {
 	public:
 
 		// Error type enum
 		const enum ErrorType {
-			UNKNOWN_ERROR
+			UNKNOWN_ERROR,
+			FILE_OVERREAD
 		};
 
 		static constexpr const char* const test[] = {
-			"Unknown error"
+			"Unknown error",
+			"Read past the end of the file"
 		};
 
 		const ErrorType type;
 	#pragma warning( push )
 	#pragma warning( disable: 26812 ) // Prefer 'enum class' over unscoped 'enum'
-		ExecutionError(ErrorType eType) : type(eType) {}
+		ExecError(ErrorType eType) : type(eType) {}
 	#pragma warning( pop )
 
 		virtual const char* what() const {
@@ -94,7 +107,7 @@ namespace vm {
 		char* end;
 		unsigned int size;
 
-		FileBuffer(std::fstream& file) {
+		FileBuffer(std::iostream& file) {
 			// https://stackoverflow.com/questions/22984956/tellg-function-give-wrong-size-of-file/22986486#22986486
 			file.clear();
 			file.seekg(0, std::ios_base::beg);
@@ -103,7 +116,7 @@ namespace vm {
 		#pragma warning( disable: 4244 )// Lossy conversion from std::streamsize to unsigned int
 			size = file.gcount();
 		#pragma warning( pop )
-			if (size > MAX_BUFFER_SIZE) 
+			if (size > MAX_BUFFER_SIZE)
 				size = MAX_BUFFER_SIZE;
 
 			file.clear();
@@ -115,7 +128,7 @@ namespace vm {
 			file.read(start, size);
 		}
 
-		virtual ~FileBuffer() {
+		~FileBuffer() {
 			delete[] start;
 		}
 
@@ -123,6 +136,23 @@ namespace vm {
 		void read(T* val) {
 			(*val) = *reinterpret_cast<T*>(ptr);
 			ptr += sizeof(T);
+		}
+
+		template<typename T>
+		void readCheck(T* val) {
+			if (ptr + sizeof(T) > end)
+				throw vm::ExecError(vm::ExecError::FILE_OVERREAD);
+			(*val) = *reinterpret_cast<T*>(ptr);
+			ptr += sizeof(T);
+		}
+
+		void checkNum(int n) {
+			if (ptr + n > end)
+				throw vm::ExecError(vm::ExecError::FILE_OVERREAD);
+		}
+
+		bool atEnd() {
+			return ptr >= end;
 		}
 	};
 
@@ -172,7 +202,7 @@ namespace vm {
 			enum {
 				ARG_NONE,	// 0
 				ARG_REG,	// 1
-				ARG_LIT32,	// 2
+				ARG_LIT,	// 2
 				ARG_ADDR,	// 3
 				ARG_OFF,	// 4
 			};
@@ -202,18 +232,50 @@ namespace vm {
 	// ## Registers
 
 	namespace Register {
-		constexpr int GP_REGISTER_OFFSET = 1;
+		constexpr int GP_REGISTER_OFFSET = 2;
+		constexpr int GP_REGISTER_COUNT = 30;
 		enum {
-			BP = 0
+			BP = 0,
+			CP = 1
 		};
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// ## Stack
+
+	// Container for stack with automatic destructor dynamic deallocation
+	class Stack {
+	public:
+		static constexpr unsigned int STACK_SIZE = 2048;
+
+		char* top;// Actually bottom
+		char* bottom;// Actually top
+
+		Stack() {
+			top = new char[STACK_SIZE];
+			bottom = top + STACK_SIZE;
+		}
+
+		~Stack() {
+			delete[] top;
+		}
+	};
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Assembly function declarations
-	
+
 	struct AssemblyOptions {
 		uint8_t flags = 0;
 	};
 	void Assemble(std::iostream& azm, std::ostream& eze, AssemblyOptions options);
 	void Assemble(std::iostream& azm, std::ostream& eze, AssemblyOptions options, std::ostream& debug);
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// ## Exec function declarations
+
+	struct ExecOptions {
+		uint8_t flags = 0;
+	};
+	void Exec(std::iostream& exe, ExecOptions options);
+	void Exec(std::iostream& exe, ExecOptions options, std::ostream& debug);
 }
