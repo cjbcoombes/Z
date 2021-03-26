@@ -5,7 +5,7 @@
 	throw vm::AssemblyError(vm::AssemblyError::x)
 
 template<typename T>
-bool parseNumber(T& num, char* str) {
+bool parseNumber(T& num, const char* str) {
 	std::stringstream convStream;
 	int16_t convChar;
 	convStream.str("");
@@ -38,7 +38,7 @@ void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
 	next:;
 	}
 
-	ASM_THROW(UNKNOWN_OPCODE);
+	ASM_THROW(INVALID_OPCODE);
 }
 
 void parseRegister(vm::types::register_t& reg, char* const& str) {
@@ -55,14 +55,20 @@ void parseRegister(vm::types::register_t& reg, char* const& str) {
 	}
 }
 
-void parseLiteral(vm::types::literal_t& lit, char* const& str) {
-	if (!parseNumber<vm::types::literal_t>(lit, str)) {
-		ASM_THROW(INVALID_LITERAL);
+void parseWord(vm::types::word_t& word, char* const& str) {
+	if (!parseNumber<vm::types::word_t>(word, str)) {
+		ASM_THROW(INVALID_WORD);
 	}
 }
 
-void parseAddress(vm::types::address_t& lit, char* const& str) {
-	if (!parseNumber<vm::types::address_t>(lit, str)) {
+void parseByte(vm::types::byte_t& byte, char* const& str) {
+	if (!parseNumber<vm::types::byte_t>(byte, str)) {
+		ASM_THROW(INVALID_BYTE);
+	}
+}
+
+void parseAddress(vm::types::address_t& addr, char* const& str) {
+	if (!parseNumber<vm::types::address_t>(addr, str)) {
 		ASM_THROW(INVALID_ADDRESS);
 	}
 }

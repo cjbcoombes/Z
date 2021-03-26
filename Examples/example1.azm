@@ -1,5 +1,6 @@
-; Add 16 and -2, store on stack
-movl R0, 0x000000F0 (decimal 16)
-movl R1, 0xFFFFFFFE (decimal -2)
+; Add 16 and -2
+movw R0, 0x00000001 (decimal 1)
+movw R1, 0x00000002 (decimal 2)
 iadd R0, R0, R1
-store R0, BP, 0xFFFFFFFFB (decimal -4)
+rprnt R0
+storew BP, 0xFFFFFFFC (decimal -4), R0

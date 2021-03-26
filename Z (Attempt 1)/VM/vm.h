@@ -6,7 +6,7 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
-static_assert(sizeof(void*) == 4, "No workaround for non-32-bit pointers");
+static_assert(sizeof(std::intptr_t) == 4, "No workaround for non-32-bit pointers");
 
 #define VM_DEBUG
 
@@ -25,11 +25,40 @@ namespace vm {
 
 	// Types and sizes of various items
 	namespace types {
+		// Size of a word (int, addr)
+		typedef uint32_t word_t;
+		// Size of a byte (char)
+		typedef uint8_t byte_t;
+		// Size of a short (offset)
+		typedef uint16_t short_t;
+
+		// Register id
 		typedef uint8_t register_t;
+		// Opcode id
 		typedef uint8_t opcode_t;
-		typedef uint32_t literal_t;
-		typedef int8_t offset_t;
-		typedef uint32_t address_t;
+
+		// Memory offset
+		typedef int16_t offset_t;
+		// Memory address
+		typedef int32_t address_t;
+		// Char
+		typedef int8_t char_t;
+		// Int
+		typedef int32_t int_t;
+
+		union Value {
+			// For storing objects of various arbitrary sizes
+			word_t word;
+			byte_t byte;
+			short_t short_;
+
+			int_t i;
+			char_t c;
+			address_t addr;
+		};
+
+		static_assert(sizeof(Value::i) == sizeof(word_t), "Int is not a word");
+		static_assert(sizeof(Value::c) == sizeof(byte_t), "Char is not a char?");
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,18 +72,23 @@ namespace vm {
 		const enum ErrorType {
 			UNKNOWN_ERROR,
 			MAX_STR_SIZE_REACHED,
-			UNKNOWN_OPCODE,
 			UNBALANCED_PARENS,
+			INVALID_OPCODE,
 			INVALID_REGISTER,
-			INVALID_LITERAL,
+			INVALID_WORD,
+			INVALID_BYTE,
 			INVALID_ADDRESS
 		};
 
 		static constexpr const char* const test[] = {
 			"Unknown error",
 			"The maximum size of a contiguous string (no whitespace) has been reached",
-			"Unknown opcode",
-			"Unbalanced parentheses"
+			"Unbalanced parentheses",
+			"Invalid opcode",
+			"Invalid register",
+			"Invalid word",
+			"Invalid byte",
+			"Invalid address"
 		};
 
 		const ErrorType type;
@@ -75,12 +109,14 @@ namespace vm {
 		// Error type enum
 		const enum ErrorType {
 			UNKNOWN_ERROR,
-			FILE_OVERREAD
+			FILE_OVERREAD,
+			UNKNOWN_OPCODE
 		};
 
 		static constexpr const char* const test[] = {
 			"Unknown error",
-			"Read past the end of the file"
+			"Read past the end of the file",
+			"Unknown opcode"
 		};
 
 		const ErrorType type;
@@ -100,7 +136,7 @@ namespace vm {
 	// A buffer for loading binary files into memory to increase execution speed
 	class FileBuffer {
 	public:
-		static const unsigned int MAX_BUFFER_SIZE = UINT_MAX;
+		static constexpr unsigned int MAX_BUFFER_SIZE = UINT_MAX;
 
 		char* start;
 		char* ptr;
@@ -167,11 +203,17 @@ namespace vm {
 			//
 			HALT,
 			//
-			MOV,
-			MOVL,
+			RPRNT,
+			LNPRNT,
 			//
-			LOAD,
-			STORE,
+			MOV,
+			MOVW,
+			MOVB,
+			//
+			LOADW,
+			STOREW,
+			LOADB,
+			STOREB,
 			//
 			JMP,
 			FJMP,
@@ -180,16 +222,22 @@ namespace vm {
 		};
 
 		// Strings for opcodes
-		const char* const strings[] = {
+		constexpr const char* const strings[] = {
 			"nop",
 			//
 			"halt",
 			//
-			"mov",
-			"movl",
+			"rprnt",
+			"lnprnt",
 			//
-			"load",
-			"store",
+			"mov",
+			"movw",
+			"movb",
+			//
+			"loadw",
+			"storew",
+			"loadb",
+			"storeb",
 			//
 			"jmp",
 			"fjmp",
@@ -202,24 +250,29 @@ namespace vm {
 			enum {
 				ARG_NONE,	// 0
 				ARG_REG,	// 1
-				ARG_LIT,	// 2
-				ARG_ADDR,	// 3
-				ARG_OFF,	// 4
+				ARG_WORD,	// 2
+				ARG_BYTE	// 3
 			};
 		}
-		const int args[][MAX_ARGS] = {
+		constexpr int args[][MAX_ARGS] = {
 			{0, 0, 0},// NOP
 			//
 			{0, 0, 0},// HALT
 			//
+			{1, 0, 0},// RPRNT
+			{0, 0, 0},// LNPRNT
+			//
 			{1, 1, 0},// MOV
-			{1, 2, 0},// MOVL
+			{1, 2, 0},// MOVW
+			{1, 3, 0},// MOVB
 			//
-			{1, 1, 3},// LOAD
-			{1, 3, 1},// STORE
+			{1, 1, 2},// LOADW
+			{1, 2, 1},// STOREW
+			{1, 1, 2},// LOADB
+			{1, 2, 1},// STOREB
 			//
-			{4, 0, 0},// JMP
-			{3, 0, 0},// FJMP
+			{/*???*/0, 0, 0},// JMP
+			{2, 0, 0},// FJMP
 			//
 			{1, 1, 1},// IADD
 		};
@@ -267,8 +320,8 @@ namespace vm {
 	struct AssemblyOptions {
 		uint8_t flags = 0;
 	};
-	void Assemble(std::iostream& azm, std::ostream& eze, AssemblyOptions options);
-	void Assemble(std::iostream& azm, std::ostream& eze, AssemblyOptions options, std::ostream& debug);
+	void Assemble(std::iostream& asm_, std::ostream& exe, AssemblyOptions options);
+	void Assemble(std::iostream& asm_, std::ostream& exe, AssemblyOptions options, std::ostream& debug);
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Exec function declarations
@@ -276,6 +329,6 @@ namespace vm {
 	struct ExecOptions {
 		uint8_t flags = 0;
 	};
-	void Exec(std::iostream& exe, ExecOptions options);
-	void Exec(std::iostream& exe, ExecOptions options, std::ostream& debug);
+	void Exec(std::iostream& exe, std::ostream& output, ExecOptions options);
+	void Exec(std::iostream& exe, std::ostream& output, ExecOptions options, std::ostream& debug);
 }

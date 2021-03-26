@@ -23,6 +23,8 @@ Code    | Instruction   | Arguments                 | Action
 ---     | ---           | ---                       | ---
 0x00    | nop           | N/A                       | Nothing
 0x01    | halt          | N/A                       | Halts the program
+0x??    | rprnt         | [reg1]                    | Prints a hex representation of the value in [reg1]
+0x??    | lnprnt        | N/A                       | Prints a newline character
 0x??    | mov           | [reg1], [reg2]            | Copies the value of [reg1] to [reg2]
 0x??    | movl          | [reg1], [lit]             | Puts the literal value [lit] in [reg1]
 0x??    | load          | [reg1], [reg2], [off]     | Load into [reg1] the value at address [reg2] + [off]

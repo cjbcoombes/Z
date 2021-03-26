@@ -1,8 +1,8 @@
 // Assemble hand-written bytecode(.azm) into binary bytecode(.eze)
 #include "vmassembledefs.h"
 
-void vm::Assemble(std::iostream& azm,
-				  std::ostream& eze,
+void vm::Assemble(std::iostream& asm_,
+				  std::ostream& exe,
 				  AssemblyOptions options
 			  #ifdef VM_DEBUG
 				  , std::ostream& debug
@@ -18,22 +18,23 @@ void vm::Assemble(std::iostream& azm,
 
 	opcode_t opcode = NOP;
 	register_t reg = 0;
-	literal_t lit = 0;
+	word_t word = 0;
 	address_t addr = 0;
+	byte_t byte = 0;
 	int argc = 0;
 
 	bool end = false;
 	bool isComment = false;
 	int pCount = 0;
-	azm.seekg(0);
-	eze.seekp(0);
+	asm_.seekg(0);
+	exe.seekp(0);
 
 #ifdef VM_DEBUG
 	debug << STRM_DEFAULT << "Bytecode assembly debug:";
 #endif
 	while (!end) {
-		azm.get(c);
-		end = azm.eof();
+		asm_.get(c);
+		end = asm_.eof();
 
 		if (!end) {
 			if (c == ';') {
@@ -69,7 +70,7 @@ void vm::Assemble(std::iostream& azm,
 				debug << '\n';
 			#endif
 				parseOpcode(opcode, str);
-				eze.write(TO_CHAR(opcode), sizeof(opcode_t));
+				exe.write(TO_CHAR(opcode), sizeof(opcode_t));
 				argc = 0;
 
 			#ifdef VM_DEBUG
@@ -83,23 +84,23 @@ void vm::Assemble(std::iostream& azm,
 
 					case ArgType::ARG_REG:
 						parseRegister(reg, str);
-						eze.write(TO_CHAR(reg), sizeof(register_t));
+						exe.write(TO_CHAR(reg), sizeof(register_t));
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
 						break;
 
-					case ArgType::ARG_LIT:
-						parseLiteral(lit, str);
-						eze.write(TO_CHAR(lit), sizeof(literal_t));
+					case ArgType::ARG_WORD:
+						parseWord(word, str);
+						exe.write(TO_CHAR(word), sizeof(word_t));
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
 						break;
 
-					case ArgType::ARG_ADDR:
-						parseAddress(addr, str);
-						eze.write(TO_CHAR(addr), sizeof(address_t));
+					case ArgType::ARG_BYTE:
+						parseByte(byte, str);
+						exe.write(TO_CHAR(byte), sizeof(byte_t));
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
