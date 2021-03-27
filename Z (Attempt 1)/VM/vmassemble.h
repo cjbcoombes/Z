@@ -13,14 +13,17 @@ void vm::Assemble(std::iostream& asm_,
 
 	constexpr int STR_SIZE = 256;
 	char str[STR_SIZE];
+	std::string stdstr;
 	int len = 0;
 	char c;
+
+	std::unordered_map<std::string, Label> labels;
 
 	opcode_t opcode = NOP;
 	register_t reg = 0;
 	word_t word = 0;
-	address_t addr = 0;
 	byte_t byte = 0;
+	short_t short_ = 0;
 	int argc = 0;
 
 	bool end = false;
@@ -106,9 +109,25 @@ void vm::Assemble(std::iostream& asm_,
 					#endif
 						break;
 
+					case ArgType::ARG_SHORT:
+						parseShort(short_, str);
+						exe.write(TO_CHAR(short_), sizeof(short_t));
+					#ifdef VM_DEBUG
+						debug << str << ' ';
+					#endif
+						break;
+
+					case ArgType::ARG_LABEL:
+						
+						stdstr.assign(str);
+						if (hasKey(labels, stdstr)) {
+							// TODO: use exe.tellp
+						}
+						break;
+
 					// TODO: ARG_OFF
 				}
-				if (argc++ >= MAX_ARGS) {
+				if (++argc >= MAX_ARGS) {
 					opcode = NOP;
 				}
 			}

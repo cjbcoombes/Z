@@ -6,7 +6,8 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
-static_assert(sizeof(std::intptr_t) == 4, "No workaround for non-32-bit pointers");
+#include <unordered_map>
+#include <vector>
 
 #define VM_DEBUG
 
@@ -25,11 +26,11 @@ namespace vm {
 
 	// Types and sizes of various items
 	namespace types {
-		// Size of a word (int, addr)
+		// Size of a word
 		typedef uint32_t word_t;
-		// Size of a byte (char)
+		// Size of a byte
 		typedef uint8_t byte_t;
-		// Size of a short (offset)
+		// Size of a short
 		typedef uint16_t short_t;
 
 		// Register id
@@ -37,13 +38,13 @@ namespace vm {
 		// Opcode id
 		typedef uint8_t opcode_t;
 
-		// Memory offset
+		// Memory offset (short)
 		typedef int16_t offset_t;
-		// Memory address
+		// Memory address (word)
 		typedef int32_t address_t;
-		// Char
+		// Char (byte)
 		typedef int8_t char_t;
-		// Int
+		// Int (word)
 		typedef int32_t int_t;
 
 		union Value {
@@ -57,8 +58,7 @@ namespace vm {
 			address_t addr;
 		};
 
-		static_assert(sizeof(Value::i) == sizeof(word_t), "Int is not a word");
-		static_assert(sizeof(Value::c) == sizeof(byte_t), "Char is not a char?");
+		static_assert(sizeof(std::intptr_t) == sizeof(word_t), "No workaround for non-word-size (32-bit) pointers");
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,7 +77,7 @@ namespace vm {
 			INVALID_REGISTER,
 			INVALID_WORD,
 			INVALID_BYTE,
-			INVALID_ADDRESS
+			INVALID_SHORT
 		};
 
 		static constexpr const char* const test[] = {
@@ -88,7 +88,7 @@ namespace vm {
 			"Invalid register",
 			"Invalid word",
 			"Invalid byte",
-			"Invalid address"
+			"Invalid short"
 		};
 
 		const ErrorType type;
@@ -203,6 +203,7 @@ namespace vm {
 			//
 			HALT,
 			//
+			STRPRNT,
 			RPRNT,
 			LNPRNT,
 			//
@@ -216,7 +217,6 @@ namespace vm {
 			STOREB,
 			//
 			JMP,
-			FJMP,
 			//
 			IADD
 		};
@@ -227,6 +227,7 @@ namespace vm {
 			//
 			"halt",
 			//
+			"strprnt",
 			"rprnt",
 			"lnprnt",
 			//
@@ -240,7 +241,6 @@ namespace vm {
 			"storeb",
 			//
 			"jmp",
-			"fjmp",
 			//
 			"iadd"
 		};
@@ -251,7 +251,9 @@ namespace vm {
 				ARG_NONE,	// 0
 				ARG_REG,	// 1
 				ARG_WORD,	// 2
-				ARG_BYTE	// 3
+				ARG_BYTE,	// 3
+				ARG_SHORT,	// 4
+				ARG_LABEL	// 5
 			};
 		}
 		constexpr int args[][MAX_ARGS] = {
@@ -259,6 +261,7 @@ namespace vm {
 			//
 			{0, 0, 0},// HALT
 			//
+			{1, 4, 0},// STRPRNT
 			{1, 0, 0},// RPRNT
 			{0, 0, 0},// LNPRNT
 			//
@@ -266,13 +269,12 @@ namespace vm {
 			{1, 2, 0},// MOVW
 			{1, 3, 0},// MOVB
 			//
-			{1, 1, 2},// LOADW
-			{1, 2, 1},// STOREW
-			{1, 1, 2},// LOADB
-			{1, 2, 1},// STOREB
+			{1, 1, 4},// LOADW
+			{1, 4, 1},// STOREW
+			{1, 1, 4},// LOADB
+			{1, 4, 1},// STOREB
 			//
-			{/*???*/0, 0, 0},// JMP
-			{2, 0, 0},// FJMP
+			{2, 0, 0},// JMP
 			//
 			{1, 1, 1},// IADD
 		};
@@ -317,18 +319,14 @@ namespace vm {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Assembly function declarations
 
-	struct AssemblyOptions {
-		uint8_t flags = 0;
-	};
+	struct AssemblyOptions {};
 	void Assemble(std::iostream& asm_, std::ostream& exe, AssemblyOptions options);
 	void Assemble(std::iostream& asm_, std::ostream& exe, AssemblyOptions options, std::ostream& debug);
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Exec function declarations
 
-	struct ExecOptions {
-		uint8_t flags = 0;
-	};
+	struct ExecOptions {};
 	void Exec(std::iostream& exe, std::ostream& output, ExecOptions options);
 	void Exec(std::iostream& exe, std::ostream& output, ExecOptions options, std::ostream& debug);
 }

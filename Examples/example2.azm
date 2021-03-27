@@ -1,0 +1,14 @@
+; 43 68 72 69 73
+movb R0, 0x00
+storeb BP, 0xFFFF, R0
+movb R0, 0x73
+storeb BP, 0xFFFE, R0
+movb R0, 0x69
+storeb BP, 0xFFFD, R0
+movb R0, 0x72
+storeb BP, 0xFFFC, R0
+movb R0, 0x68
+storeb BP, 0xFFFB, R0
+movb R0, 0x43
+storeb BP, 0xFFFA, R0
+strprnt BP, 0xFFFA

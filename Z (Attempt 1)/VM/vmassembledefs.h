@@ -67,8 +67,16 @@ void parseByte(vm::types::byte_t& byte, char* const& str) {
 	}
 }
 
-void parseAddress(vm::types::address_t& addr, char* const& str) {
-	if (!parseNumber<vm::types::address_t>(addr, str)) {
-		ASM_THROW(INVALID_ADDRESS);
+void parseShort(vm::types::short_t& short_, char* const& str) {
+	if (!parseNumber<vm::types::short_t>(short_, str)) {
+		ASM_THROW(INVALID_SHORT);
 	}
+}
+
+struct Label {
+	vm::types::word_t addr;
+	std::vector<vm::types::word_t> refs;
+};
+bool hasKey(std::unordered_map<std::string, Label> map, std::string key) {
+	return map.find(key) != map.end();
 }
