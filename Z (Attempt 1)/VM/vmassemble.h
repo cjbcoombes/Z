@@ -18,23 +18,36 @@ void vm::Assemble(std::iostream& asm_,
 	char c;
 
 	std::unordered_map<std::string, Label> labels;
+	std::unordered_map<std::string, short_t> vars;
+	std::string startstr = "@__START__";
+	labels[startstr] = Label(0);
+	labels[startstr].refs.push_back(0);
 
 	opcode_t opcode = NOP;
+	opcode_t tempOpcode = NOP;
 	register_t reg = 0;
+	register_t regGP = vm::Register::GP;
 	word_t word = 0;
 	byte_t byte = 0;
 	short_t short_ = 0;
+	word_t placeholderWord = 0xadadadad;
 	int argc = 0;
 
 	bool end = false;
 	bool isComment = false;
+	bool isGlobalSet = true;
 	int pCount = 0;
+
+	word_t byteCounter = 0;
 	asm_.seekg(0);
 	exe.seekp(0);
 
 #ifdef VM_DEBUG
 	debug << STRM_DEFAULT << "Bytecode assembly debug:";
 #endif
+	byteCounter = 4;
+	WRITE(byteCounter, word_t);// First instruction address
+	byteCounter = 4;
 	while (!end) {
 		asm_.get(c);
 		end = asm_.eof();
@@ -61,24 +74,63 @@ void vm::Assemble(std::iostream& asm_,
 			ASM_THROW(UNBALANCED_PARENS);
 		} else if (pCount > 0 || isComment) {
 			continue;
-		} 
-		
+		}
+
 		if (c == ' ' || c == ',' || c == '\n' || c == '\t' || end) {
 			if (len == 0)
 				continue;
 			str[len++] = '\0';
 
 			if (opcode == NOP || args[opcode][argc] == ArgType::ARG_NONE) {
-			#ifdef VM_DEBUG
-				debug << '\n';
-			#endif
-				parseOpcode(opcode, str);
-				exe.write(TO_CHAR(opcode), sizeof(opcode_t));
-				argc = 0;
+				if (str[0] == '@') {
+					stdstr.assign(str);
+					if (!hasKey(labels, stdstr)) {
+						labels[stdstr] = Label();
+					}
+					labels[stdstr].addr = byteCounter;
+				} else {
 
-			#ifdef VM_DEBUG
-				debug << vm::Opcode::strings[opcode] << ' ';
-			#endif
+				#ifdef VM_DEBUG
+					debug << '\n';
+				#endif
+					parseOpcode(opcode, str);
+
+					if (isGlobalSet) {
+						if (opcode < GLOBAL_OPCODE_BREAK) {
+							isGlobalSet = false;
+							labels[startstr].addr = byteCounter;
+						}
+					} else {
+						if (opcode > GLOBAL_OPCODE_BREAK) {
+							ASM_THROW(INVALID_GLOBAL);
+						}
+					}
+
+					switch (opcode) {
+						case LOADGW:
+							tempOpcode = LOADW;
+							break;
+						case STOREGW:
+							tempOpcode = STOREW;
+							break;
+						case LOADGB:
+							tempOpcode = LOADB;
+							break;
+						case STOREGB:
+							tempOpcode = STOREB;
+							break;
+						default:
+							tempOpcode = opcode;
+					}
+					if (tempOpcode < VALID_OPCODE_BREAK) {
+						WRITE(tempOpcode, opcode_t);
+					}
+					argc = 0;
+
+				#ifdef VM_DEBUG
+					debug << vm::Opcode::strings[opcode] << ' ';
+				#endif
+				}
 			} else {
 				switch (args[opcode][argc]) {
 					case ArgType::ARG_NONE:
@@ -87,7 +139,7 @@ void vm::Assemble(std::iostream& asm_,
 
 					case ArgType::ARG_REG:
 						parseRegister(reg, str);
-						exe.write(TO_CHAR(reg), sizeof(register_t));
+						WRITE(reg, register_t);
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
@@ -95,7 +147,7 @@ void vm::Assemble(std::iostream& asm_,
 
 					case ArgType::ARG_WORD:
 						parseWord(word, str);
-						exe.write(TO_CHAR(word), sizeof(word_t));
+						WRITE(word, word_t);
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
@@ -103,7 +155,7 @@ void vm::Assemble(std::iostream& asm_,
 
 					case ArgType::ARG_BYTE:
 						parseByte(byte, str);
-						exe.write(TO_CHAR(byte), sizeof(byte_t));
+						WRITE(byte, byte_t);
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
@@ -111,21 +163,36 @@ void vm::Assemble(std::iostream& asm_,
 
 					case ArgType::ARG_SHORT:
 						parseShort(short_, str);
-						exe.write(TO_CHAR(short_), sizeof(short_t));
+						WRITE(short_, short_t);
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
 						break;
 
 					case ArgType::ARG_LABEL:
-						
 						stdstr.assign(str);
-						if (hasKey(labels, stdstr)) {
-							// TODO: use exe.tellp
+						if (!hasKey(labels, stdstr)) {
+							labels[stdstr] = Label();
+						}
+						labels[stdstr].refs.push_back(exe.tellp());
+						WRITE(placeholderWord, word_t);
+						break;
+
+					case ArgType::ARG_VAR:
+						stdstr.assign(str);
+						if (opcode > GLOBAL_OPCODE_BREAK) {
+							vars[stdstr] = byteCounter;
+						} else {
+							if (!hasKey(vars, stdstr)) {
+								ASM_THROW(UNDEFINED_VAR);
+							}
+							WRITE(regGP, register_t);
+							WRITE(vars[stdstr], short_t);
 						}
 						break;
 
-					// TODO: ARG_OFF
+					case ArgType::ARG_STR:
+						break;
 				}
 				if (++argc >= MAX_ARGS) {
 					opcode = NOP;
@@ -138,6 +205,13 @@ void vm::Assemble(std::iostream& asm_,
 			}
 
 			str[len++] = c;
+		}
+	}
+
+	for (const std::pair<std::string, Label>& label : labels) {
+		for (const std::streampos& pos : label.second.refs) {
+			exe.seekp(pos);
+			exe.write(reinterpret_cast<char*>(const_cast<word_t*>(&label.second.addr)), sizeof(word_t));
 		}
 	}
 

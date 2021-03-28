@@ -6,9 +6,7 @@ An interpreted programming language with RISC bytecode, and c-style syntax, writ
 A register-based RISC bytecode
 
 #### File Format
-First 4 bytes: Size of global table \
-Second 4 bytes: Address of first instruction \
-Next (?) bytes: global table \
+First 4 bytes: Address of first instruction \
 Next (?) bytes: program
 
 ##### Registers
@@ -51,4 +49,17 @@ movw R0, 0x000000F0 (decimal 16)
 movw R1, 0xFFFFFFFE (decimal -2)
 iadd R0, R0, R1
 rprnt R0
+```
+```
+; Add 1 and 2 as integers, with some branching for fun
+movw R0, 0x00000001
+jmp @SKIP
+@SKIPBACK
+iadd R2, R0, R1
+jmp @END
+@SKIP
+movw R1, 0x00000002
+jmp @SKIPBACK
+@END
+rprnt R2
 ```

@@ -4,6 +4,10 @@
 #define ASM_THROW(x) \
 	throw vm::AssemblyError(vm::AssemblyError::x)
 
+#define WRITE(var, type) \
+	exe.write(TO_CHAR(var), sizeof(type)); \
+	byteCounter += sizeof(type)
+
 template<typename T>
 bool parseNumber(T& num, const char* str) {
 	std::stringstream convStream;
@@ -75,8 +79,13 @@ void parseShort(vm::types::short_t& short_, char* const& str) {
 
 struct Label {
 	vm::types::word_t addr;
-	std::vector<vm::types::word_t> refs;
+	std::vector<std::streampos> refs;
+
+	Label() : addr(0) {}
+	Label(vm::types::word_t addrIn) : addr(addrIn) {}
 };
-bool hasKey(std::unordered_map<std::string, Label> map, std::string key) {
+
+template<typename A, typename B>
+bool hasKey(std::unordered_map<A, B> map, A key) {
 	return map.find(key) != map.end();
 }

@@ -1,0 +1,7 @@
+globalw varname, 0x12345678
+movw R0, 0x1
+rprnt R0
+movw R0, 0x2
+loadgw R1, varname
+iadd R0, R0, R1
+rprnt R0

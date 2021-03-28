@@ -73,6 +73,8 @@ namespace vm {
 			UNKNOWN_ERROR,
 			MAX_STR_SIZE_REACHED,
 			UNBALANCED_PARENS,
+			UNDEFINED_VAR,
+			INVALID_GLOBAL,
 			INVALID_OPCODE,
 			INVALID_REGISTER,
 			INVALID_WORD,
@@ -84,6 +86,8 @@ namespace vm {
 			"Unknown error",
 			"The maximum size of a contiguous string (no whitespace) has been reached",
 			"Unbalanced parentheses",
+			"Undefined variable",
+			"Globals must be defined at the top of the program",
 			"Invalid opcode",
 			"Invalid register",
 			"Invalid word",
@@ -217,8 +221,27 @@ namespace vm {
 			STOREB,
 			//
 			JMP,
+			JMPZ,
+			JMPNZ,
 			//
-			IADD
+			ICMP,
+			IADD,
+			//
+			// 
+			// 
+			VALID_OPCODE_BREAK,
+			// The following are on the list as codes in assembly, but are not executable
+			LOADGW,
+			STOREGW,
+			LOADGB,
+			STOREGB,
+			STRPRNTG,
+			//
+			GLOBAL_OPCODE_BREAK,
+			// The following are for adding global variables to the header of the executable
+			GLOBALW,
+			GLOBALB,
+			GLOBALSTR
 		};
 
 		// Strings for opcodes
@@ -241,19 +264,40 @@ namespace vm {
 			"storeb",
 			//
 			"jmp",
+			"jmpz",
+			"jmpnz",
 			//
-			"iadd"
+			"icmp",
+			"iadd",
+			//
+			// 
+			// 
+			"",
+			//
+			"loadgw",
+			"storegw",
+			"loadgb",
+			"storegb",
+			"strprntg",
+			//
+			"",
+			//
+			"globalw",
+			"globalb",
+			"globalstr"
 		};
 
 		constexpr int MAX_ARGS = 3;
 		namespace ArgType {
-			enum {
+			enum Type {
 				ARG_NONE,	// 0
 				ARG_REG,	// 1
 				ARG_WORD,	// 2
 				ARG_BYTE,	// 3
 				ARG_SHORT,	// 4
-				ARG_LABEL	// 5
+				ARG_LABEL,	// 5
+				ARG_VAR,	// 6
+				ARG_STR,	// 7
 			};
 		}
 		constexpr int args[][MAX_ARGS] = {
@@ -274,9 +318,28 @@ namespace vm {
 			{1, 1, 4},// LOADB
 			{1, 4, 1},// STOREB
 			//
-			{2, 0, 0},// JMP
+			{5, 0, 0},// JMP
+			{5, 0, 0},// JMPZ
+			{5, 0, 0},// JMPNZ
 			//
+			{1, 0, 0},// ICMP
 			{1, 1, 1},// IADD
+			//
+			// 
+			// 
+			{0, 0, 0},// VALID_OPCODE_BREAK
+			//
+			{1, 6, 0},// LOADGW
+			{6, 1, 0},// STOREGW
+			{1, 6, 0},// LOADGB
+			{6, 1, 0},// STOREGB
+			{6, 0, 0},// STRPRNTG
+			//
+			{0, 0, 0},// GLOBAL_OPCODE_BREAK
+			//
+			{6, 2, 0},// GLOBALW
+			{6, 3, 0},// GLOBALB
+			{6, 7, 0} // GLOBALSTR
 		};
 
 		// Number of opcodes
@@ -291,8 +354,27 @@ namespace vm {
 		constexpr int GP_REGISTER_COUNT = 30;
 		enum {
 			BP = 0,
-			CP = 1
+			GP = 1
 		};
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// ## Registers
+	namespace Flag {
+		typedef uint8_t flag_t;
+		enum {
+			ZERO = 1,
+			NEG = 2
+		};
+
+		template <typename T>
+		void set(flag_t& flags, T num) {
+			flags = 0;
+			if (num < 0)
+				flags |= NEG;
+			else if (num == 0)
+				flags |= ZERO;
+		}
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -326,7 +408,15 @@ namespace vm {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// ## Exec function declarations
 
-	struct ExecOptions {};
+	struct ExecOptions {
+		static enum {
+			PRINT_OPCODE = 1
+		};
+		uint8_t flags;
+
+		ExecOptions() : flags(0) {}
+		ExecOptions(uint8_t inFlags) : flags(inFlags) {}
+	};
 	void Exec(std::iostream& exe, std::ostream& output, ExecOptions options);
 	void Exec(std::iostream& exe, std::ostream& output, ExecOptions options, std::ostream& debug);
 }

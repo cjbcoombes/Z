@@ -17,25 +17,35 @@ void vm::Exec(std::iostream& exe,
 
 	Stack stack;
 	Value regs[vm::Register::GP_REGISTER_COUNT + vm::Register::GP_REGISTER_OFFSET];
-	regs[0].addr = reinterpret_cast<address_t>(stack.bottom);// BP
-	regs[1].i = 0;// CP
+	regs[0].word = reinterpret_cast<word_t>(stack.bottom);// BP
+	regs[1].word = reinterpret_cast<word_t>(buffer.start);// GP
 
+	vm::Flag::flag_t flags = 0;
 	opcode_t opcode = NOP;
 	register_t reg1 = 0;
 	register_t reg2 = 0;
 	register_t reg3 = 0;
 	word_t word = 0;
 	byte_t byte = 0;
-	address_t addr = 0;
 	offset_t off = 0;
+
+	const bool printOpcode = options.flags & vm::ExecOptions::PRINT_OPCODE;
 
 	output << STRM_DEFAULT;
 #ifdef VM_DEBUG
 	debug << STRM_DEFAULT;
 #endif
+	buffer.readCheck<word_t>(&word);
+	buffer.ptr = buffer.start + word;
 	while (!buffer.atEnd()) {
 		buffer.read<opcode_t>(&opcode);
 		// If sizeof(opcode_t) > 1 then buffer.readCheck<opcode_t>(&test);
+
+	#ifdef VM_DEBUG
+		if (printOpcode) {
+			debug << '[' << strings[opcode] << "]\n";
+		}
+	#endif
 
 		switch (opcode) {
 			case NOP:
@@ -131,8 +141,27 @@ void vm::Exec(std::iostream& exe,
 				break;
 
 			case JMP:
-				buffer.readCheck<address_t>(&addr);
-				buffer.ptr = reinterpret_cast<char*>(addr);
+				buffer.readCheck<word_t>(&word);
+				buffer.ptr = buffer.start + word;
+				break;
+
+			case JMPZ:
+				buffer.readCheck<word_t>(&word);
+				if (flags & vm::Flag::ZERO) {
+					buffer.ptr = buffer.start + word;
+				}
+				break;
+
+			case JMPNZ:
+				buffer.readCheck<word_t>(&word);
+				if (!(flags & vm::Flag::ZERO)) {
+					buffer.ptr = buffer.start + word;
+				}
+				break;
+
+			case ICMP:
+				buffer.readCheck<register_t>(&reg1);
+				vm::Flag::set(flags, regs[reg1].i);
 				break;
 			
 			case IADD:
@@ -142,6 +171,7 @@ void vm::Exec(std::iostream& exe,
 				buffer.read<register_t>(&reg2);
 				buffer.read<register_t>(&reg3);
 				regs[reg1].i = regs[reg2].i + regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].i);
 				break;
 
 			default:

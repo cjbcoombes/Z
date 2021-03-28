@@ -1,0 +1,16 @@
+movw R0, 0x1
+movw R1, 0x0
+movw R2, 0x00000019
+movw R3, 0xFFFFFFFF
+@LOOP
+iadd R1, R0, R1
+iadd R2, R2, R3
+rprnt R1
+lnprnt
+jmpz @END
+iadd R0, R0, R1
+iadd R2, R2, R3
+rprnt R0
+lnprnt
+jmpnz @LOOP
+@END
