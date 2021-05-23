@@ -8,6 +8,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <vector>
+#include <chrono>
 
 #define VM_DEBUG
 
@@ -82,7 +83,7 @@ namespace vm {
 			INVALID_SHORT
 		};
 
-		static constexpr const char* const test[] = {
+		static constexpr const char* const strings[] = {
 			"Unknown error",
 			"The maximum size of a contiguous string (no whitespace) has been reached",
 			"Unbalanced parentheses",
@@ -96,13 +97,21 @@ namespace vm {
 		};
 
 		const ErrorType type;
+		std::string extra;
+		bool isExtra;
 	#pragma warning( push )
 	#pragma warning( disable: 26812 ) // Prefer 'enum class' over unscoped 'enum'
-		AssemblyError(ErrorType eType) : type(eType) {}
+		AssemblyError(ErrorType eType) : type(eType), isExtra(false) {}
+		AssemblyError(ErrorType eType, char* const& str) : type(eType), extra(str), isExtra(true) {}
 	#pragma warning( pop )
 
-		virtual const char* what() const {
-			return test[type];
+		virtual const char* what() {
+			if (isExtra) {
+				extra.insert(0, " : ");
+				extra.insert(0, strings[type]);
+				return extra.c_str();
+			}
+			return strings[type];
 		}
 	};
 
@@ -410,7 +419,8 @@ namespace vm {
 
 	struct ExecOptions {
 		static enum {
-			PRINT_OPCODE = 1
+			PRINT_OPCODE = 1,
+			PROFILE = 2
 		};
 		uint8_t flags;
 

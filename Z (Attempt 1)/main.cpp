@@ -73,7 +73,8 @@ int main(int argc, const char* args[]) {
 		"-assemble",
 		"-exec",
 		"-debug",
-		"-nodebug"
+		"-nodebug",
+		"-profile"
 	};
 	constexpr int numPossArgs = sizeof(possArgs) / sizeof(std::string);
 
@@ -108,6 +109,10 @@ int main(int argc, const char* args[]) {
 
 					case 3: // nodebug
 						debugMode = false;
+						break;
+
+					case 4: // profile
+						exeOptions.flags |= vm::ExecOptions::PROFILE;
 						break;
 				}
 				break;

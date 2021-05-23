@@ -30,11 +30,15 @@ void vm::Exec(std::iostream& exe,
 	offset_t off = 0;
 
 	const bool printOpcode = options.flags & vm::ExecOptions::PRINT_OPCODE;
+	const bool profile = options.flags & vm::ExecOptions::PROFILE;
 
 	output << STRM_DEFAULT;
 #ifdef VM_DEBUG
-	debug << STRM_DEFAULT;
+	debug << STRM_DEFAULT << "[DEBUG] Bytecode execution debug:\n";
 #endif
+
+	auto profileStart = std::chrono::high_resolution_clock::now();
+
 	buffer.readCheck<word_t>(&word);
 	buffer.ptr = buffer.start + word;
 	while (!buffer.atEnd()) {
@@ -180,4 +184,9 @@ void vm::Exec(std::iostream& exe,
 	}
 
 end:;
+
+	auto profileEnd = std::chrono::high_resolution_clock::now();
+	if (profile) {
+		output << "[PROFILE] Runtime (micros): " << std::chrono::duration_cast<std::chrono::microseconds>(profileEnd - profileStart).count() << '\n';
+	}
 }

@@ -1,0 +1,10 @@
+globalw WORD, 0x12ABCDEF
+globalstr STR, "ABCD...\"Hello, my name is Chris\"\\"
+loadgw R0, WORD
+rprnt R0
+lnprnt
+loadgw R1, STR
+rprnt R1
+lnprnt
+strprntg STR
+lnprnt

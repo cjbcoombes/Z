@@ -36,6 +36,8 @@ void vm::Assemble(std::iostream& asm_,
 	bool end = false;
 	bool isComment = false;
 	bool isGlobalSet = true;
+	bool isStr = false;
+	bool isEscaped = false;
 	int pCount = 0;
 
 	word_t byteCounter = 0;
@@ -43,7 +45,7 @@ void vm::Assemble(std::iostream& asm_,
 	exe.seekp(0);
 
 #ifdef VM_DEBUG
-	debug << STRM_DEFAULT << "Bytecode assembly debug:";
+	debug << STRM_DEFAULT << "[DEBUG] Bytecode assembly debug:";
 #endif
 	byteCounter = 4;
 	WRITE(byteCounter, word_t);// First instruction address
@@ -60,7 +62,7 @@ void vm::Assemble(std::iostream& asm_,
 					isComment = false;
 					continue;
 				}
-			} if (c == '(') {
+			} else if (c == '(') {
 				pCount++;
 			} else if (c == ')') {
 				if (!(pCount--)) {
@@ -69,6 +71,33 @@ void vm::Assemble(std::iostream& asm_,
 				continue;
 			}
 		}
+		/**/
+		if (isStr) {
+			if (end) {
+				isStr = false;
+			} else if (isEscaped) {
+				switch (c) {
+					case 'n': 
+						c = '\n';
+						break;
+					case 't':
+						c = '\t';
+						break;
+				}
+				isEscaped = false;
+			} else if (c == '\\') {
+				if (isStr && !isEscaped) {
+					isEscaped = true;
+					continue;
+				}
+			} else if (c == '"') {
+				isStr = false;
+				continue;
+			}
+		} else if (!end && pCount == 0 && !isComment && c == '"') {
+			isStr = true;
+			continue;
+		}
 
 		if (pCount < 0) {
 			ASM_THROW(UNBALANCED_PARENS);
@@ -76,7 +105,7 @@ void vm::Assemble(std::iostream& asm_,
 			continue;
 		}
 
-		if (c == ' ' || c == ',' || c == '\n' || c == '\t' || end) {
+		if ((!isStr && (c == ' ' || c == ',' || c == '\n' || c == '\t')) || end) {
 			if (len == 0)
 				continue;
 			str[len++] = '\0';
@@ -118,6 +147,9 @@ void vm::Assemble(std::iostream& asm_,
 							break;
 						case STOREGB:
 							tempOpcode = STOREB;
+							break;
+						case STRPRNTG:
+							tempOpcode = STRPRNT;
 							break;
 						default:
 							tempOpcode = opcode;
@@ -192,6 +224,7 @@ void vm::Assemble(std::iostream& asm_,
 						break;
 
 					case ArgType::ARG_STR:
+						WRITE_N(str, len);
 						break;
 				}
 				if (++argc >= MAX_ARGS) {

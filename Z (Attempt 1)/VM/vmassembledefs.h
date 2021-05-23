@@ -4,9 +4,12 @@
 #define ASM_THROW(x) \
 	throw vm::AssemblyError(vm::AssemblyError::x)
 
+#define WRITE_N(var, n) \
+	exe.write(TO_CHAR(var), n); \
+	byteCounter += n
+
 #define WRITE(var, type) \
-	exe.write(TO_CHAR(var), sizeof(type)); \
-	byteCounter += sizeof(type)
+	WRITE_N(var, sizeof(type))
 
 template<typename T>
 bool parseNumber(T& num, const char* str) {
@@ -42,7 +45,8 @@ void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
 	next:;
 	}
 
-	ASM_THROW(INVALID_OPCODE);
+	throw vm::AssemblyError::AssemblyError(vm::AssemblyError::INVALID_OPCODE, str);
+	// ASM_THROW(INVALID_OPCODE);
 }
 
 void parseRegister(vm::types::register_t& reg, char* const& str) {
@@ -54,8 +58,8 @@ void parseRegister(vm::types::register_t& reg, char* const& str) {
 		reg = temp + vm::Register::GP_REGISTER_OFFSET;
 	} else if (str[0] == 'B' && str[1] == 'P' && str[2] == '\0') {
 		reg = vm::Register::BP;
-	} else if (str[0] == 'C' && str[1] == 'P' && str[2] == '\0') {
-		reg = vm::Register::BP;
+	} else if (str[0] == 'G' && str[1] == 'P' && str[2] == '\0') {
+		reg = vm::Register::GP;
 	}
 }
 
