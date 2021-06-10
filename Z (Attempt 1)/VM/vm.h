@@ -123,23 +123,33 @@ namespace vm {
 		const enum ErrorType {
 			UNKNOWN_ERROR,
 			FILE_OVERREAD,
-			UNKNOWN_OPCODE
+			UNKNOWN_OPCODE,
+			DIVIDE_BY_ZERO
 		};
 
-		static constexpr const char* const test[] = {
+		static constexpr const char* const strings[] = {
 			"Unknown error",
 			"Read past the end of the file",
-			"Unknown opcode"
+			"Unknown opcode",
+			"Divide (or modulo) by zero"
 		};
 
 		const ErrorType type;
+		std::string extra;
+		bool isExtra;
 	#pragma warning( push )
 	#pragma warning( disable: 26812 ) // Prefer 'enum class' over unscoped 'enum'
-		ExecError(ErrorType eType) : type(eType) {}
+		ExecError(ErrorType eType) : type(eType), isExtra(false) {}
+		ExecError(ErrorType eType, char* const& str) : type(eType), extra(str), isExtra(true) {}
 	#pragma warning( pop )
 
-		virtual const char* what() const {
-			return test[type];
+		virtual const char* what() {
+			if (isExtra) {
+				extra.insert(0, " : ");
+				extra.insert(0, strings[type]);
+				return extra.c_str();
+			}
+			return strings[type];
 		}
 	};
 
@@ -235,6 +245,10 @@ namespace vm {
 			//
 			ICMP,
 			IADD,
+			ISUB,
+			IMUL,
+			IDIV,
+			IMOD,
 			//
 			// 
 			// 
@@ -278,6 +292,10 @@ namespace vm {
 			//
 			"icmp",
 			"iadd",
+			"isub",
+			"imul",
+			"idiv",
+			"imod",
 			//
 			// 
 			// 
@@ -333,6 +351,10 @@ namespace vm {
 			//
 			{1, 0, 0},// ICMP
 			{1, 1, 1},// IADD
+			{1, 1, 1},// ISUB
+			{1, 1, 1},// IMUL
+			{1, 1, 1},// IDIV
+			{1, 1, 1},// IMOD
 			//
 			// 
 			// 

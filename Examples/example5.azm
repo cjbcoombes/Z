@@ -1,0 +1,15 @@
+; Tests various mathematical operations
+movw R0, 0x00000019 ; # of iterations
+movw R1, 0xFFFFFFFF ; -1
+movw R2, 0x00000011 ; Starting #
+movw R3, 0x00000002 ; # = # - this
+                    ; # = # * this
+movw R4, 0x00000100 ; # = # % this
+@JUMP
+rprnt R2
+lnprnt
+isub R2, R2, R3
+imul R2, R2, R3
+imod R2, R2, R4
+iadd R0, R0, R1
+jmpnz @JUMP

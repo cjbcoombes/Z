@@ -1,0 +1,9 @@
+movw R1, 0xFFFFFFFF
+movw R2, 0x01000000 
+movw R3, 0x00000100
+@JUMP
+idiv R4, R2, R3
+iadd R3, R3, R1
+rprnt R4
+lnprnt
+jmp @JUMP

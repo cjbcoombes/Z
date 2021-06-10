@@ -35,7 +35,7 @@ Possible Arguments: \
 [var] is the name of a global, used for storing and recalling globals \
 [string] is a null-terminated string \
 
-F means it sets the flags based on the result \
+(F) means it sets the flags based on the result \
 
 Code    | Instruction   | Arguments                 | Action
 ---     | ---           | ---                       | ---
@@ -54,8 +54,8 @@ Code    | Instruction   | Arguments                 | Action
 0x??    | jmp           | [label]                   | Jump to [label]
 0x??    | jmpz          | [label]                   | Jump to [label] if the zero flag is set
 0x??    | jmpnz         | [label]                   | Jump to [label] if the zero flag is not set
-0x??    | icmp        F | [reg1]                    | Sets the flags based on the integer value in [reg1]
-0x??    | iadd        F | [reg1], [reg2], [reg3]    | Adds the values from [reg2] and [reg3] into [reg1] as integers
+0x??    | icmp      (F) | [reg1]                    | Sets the flags based on the integer value in [reg1]
+0x??    | iadd      (F) | [reg1], [reg2], [reg3]    | Adds the values from [reg2] and [reg3] into [reg1] as integers
 N/A     | N/A           | N/A                       | Separates valid from invalid opcodes. The remaining opcodes are available as commands in assembly, but are converted to the opcodes above in order to be executed
 N/A     | loadgw        | [reg1], [var]             | Load the word at [var] into [reg1]
 N/A     | storegw       | [var], [reg1]             | Store the word in [reg1] at [var]
@@ -135,4 +135,22 @@ rprnt R0
 lnprnt
 jmpnz @LOOP
 @END
+```
+```
+; Files: example5.azm, example5.eze
+; Tests various mathematical operations
+movw R0, 0x00000019 ; # of iterations
+movw R1, 0xFFFFFFFF ; -1
+movw R2, 0x00000011 ; Starting #
+movw R3, 0x00000002 ; # = # - this
+                    ; # = # * this
+movw R4, 0x00000100 ; # = # % this
+@JUMP
+rprnt R2
+lnprnt
+isub R2, R2, R3
+imul R2, R2, R3
+imod R2, R2, R4
+iadd R0, R0, R1
+jmpnz @JUMP
 ```

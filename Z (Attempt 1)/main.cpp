@@ -33,7 +33,7 @@ int assemble(const char* asmPath, const char* exePath, vm::AssemblyOptions optio
 			vm::Assemble(asm_, exe, options);
 		}
 	} catch (vm::AssemblyError e) {
-		std::cout << e.what() << "\n\n\n";
+		std::cout << "#### Program Assembled With Error\n     " << e.what() << "\n\n\n";
 		return 1;
 	}
 
@@ -53,7 +53,7 @@ int exec(const char* exePath, vm::ExecOptions options, bool debugMode) {
 			vm::Exec(exe, std::cout, options);
 		}
 	} catch (vm::ExecError e) {
-		std::cout << e.what() << "\n\n\n";
+		std::cout << "#### Program Executed With Error\n     " << e.what() << "\n\n\n";
 		return 1;
 	}
 

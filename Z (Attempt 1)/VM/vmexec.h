@@ -178,6 +178,50 @@ void vm::Exec(std::iostream& exe,
 				vm::Flag::set(flags, regs[reg1].i);
 				break;
 
+			case ISUB:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].i = regs[reg2].i - regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].i);
+				break;
+
+			case IMUL:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].i = regs[reg2].i * regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].i);
+				break;
+
+			case IDIV:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				if (regs[reg3].i == 0)
+					EXE_THROW(DIVIDE_BY_ZERO);
+				regs[reg1].i = regs[reg2].i / regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].i);
+				break;
+
+			case IMOD:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				if (regs[reg3].i == 0)
+					EXE_THROW(DIVIDE_BY_ZERO);
+				regs[reg1].i = regs[reg2].i % regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].i);
+				break;
+
 			default:
 				EXE_THROW(UNKNOWN_OPCODE);
 		}
@@ -187,6 +231,6 @@ end:;
 
 	auto profileEnd = std::chrono::high_resolution_clock::now();
 	if (profile) {
-		output << "[PROFILE] Runtime (micros): " << std::chrono::duration_cast<std::chrono::microseconds>(profileEnd - profileStart).count() << '\n';
+		output << "[PROFILE] Runtime (1,000,000 micros = 1 sec): " << std::chrono::duration_cast<std::chrono::microseconds>(profileEnd - profileStart).count() << '\n';
 	}
 }
