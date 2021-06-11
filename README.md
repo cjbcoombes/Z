@@ -19,7 +19,8 @@ ID      | Register      | Purpose
 N/A     | IP            | Instruction pointer (not accessible by program)
 0       | BP            | Stack base pointer
 1       | GP            | Pointer to base of globals memory (includes the 4-byte pointer to the program start)
-2 .. 31 | R2 .. R31     | General Purpose
+2       | NR            | Null Register, does nothing
+3 .. 32 | R0 .. R29     | General Purpose
 
 
 ##### Instructions
@@ -56,6 +57,7 @@ Code    | Instruction   | Arguments                 | Action
 0x??    | jmpnz         | [label]                   | Jump to [label] if the zero flag is not set
 0x??    | icmp      (F) | [reg1]                    | Sets the flags based on the integer value in [reg1]
 0x??    | iadd      (F) | [reg1], [reg2], [reg3]    | Adds the values from [reg2] and [reg3] into [reg1] as integers
+0x?? | | | ... int arithmetic ...
 N/A     | N/A           | N/A                       | Separates valid from invalid opcodes. The remaining opcodes are available as commands in assembly, but are converted to the opcodes above in order to be executed
 N/A     | loadgw        | [reg1], [var]             | Load the word at [var] into [reg1]
 N/A     | storegw       | [var], [reg1]             | Store the word in [reg1] at [var]
@@ -70,6 +72,7 @@ N/A     | globalstr     | [var], [string]           | Sets global [var] to [stri
 ##### Stack
 
 ##### Examples
+Note: .azm files should be up-to-date with the bytecode, but .eze files might require regeneration
 ```
 ; Add 16 and -2 as integers
 movw R0, 0x000000F0 (decimal 16)

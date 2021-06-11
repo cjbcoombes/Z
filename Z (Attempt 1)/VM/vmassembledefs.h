@@ -60,6 +60,8 @@ void parseRegister(vm::types::register_t& reg, char* const& str) {
 		reg = vm::Register::BP;
 	} else if (str[0] == 'G' && str[1] == 'P' && str[2] == '\0') {
 		reg = vm::Register::GP;
+	} else if (str[0] == 'N' && str[1] == 'R' && str[2] == '\0') {
+		reg = vm::Register::NR;
 	}
 }
 

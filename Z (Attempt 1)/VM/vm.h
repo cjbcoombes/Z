@@ -47,6 +47,8 @@ namespace vm {
 		typedef int8_t char_t;
 		// Int (word)
 		typedef int32_t int_t;
+		// Bool (byte)
+		typedef int8_t bool_t;
 
 		union Value {
 			// For storing objects of various arbitrary sizes
@@ -57,6 +59,7 @@ namespace vm {
 			int_t i;
 			char_t c;
 			address_t addr;
+			bool_t b;
 		};
 
 		static_assert(sizeof(std::intptr_t) == sizeof(word_t), "No workaround for non-word-size (32-bit) pointers");
@@ -381,11 +384,14 @@ namespace vm {
 	// ## Registers
 
 	namespace Register {
-		constexpr int GP_REGISTER_OFFSET = 2;
-		constexpr int GP_REGISTER_COUNT = 30;
+		// GP here means "general purpose"
+		constexpr int GP_REGISTER_OFFSET = 3;
+		constexpr int GP_REGISTER_COUNT = 29;
 		enum {
 			BP = 0,
-			GP = 1
+			// GP here means "global pointer"
+			GP = 1,
+			NR = 2
 		};
 	}
 
