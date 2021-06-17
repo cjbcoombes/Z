@@ -247,6 +247,12 @@ namespace vm {
 			JMPNZ,
 			//
 			ICMP,
+			ICMPEQ,
+			ICMPNE,
+			ICMPGT,
+			ICMPLT,
+			ICMPGE,
+			ICMPLE,
 			IADD,
 			ISUB,
 			IMUL,
@@ -294,6 +300,12 @@ namespace vm {
 			"jmpnz",
 			//
 			"icmp",
+			"icmpeq",
+			"icmpne",
+			"icmpgt",
+			"icmplt",
+			"icmpge",
+			"icmple",
 			"iadd",
 			"isub",
 			"imul",
@@ -353,6 +365,12 @@ namespace vm {
 			{5, 0, 0},// JMPNZ
 			//
 			{1, 0, 0},// ICMP
+			{1, 1, 1},// ICMPEQ
+			{1, 1, 1},// ICMPNE
+			{1, 1, 1},// ICMPGT
+			{1, 1, 1},// ICMPLT
+			{1, 1, 1},// ICMPGE
+			{1, 1, 1},// ICMPLE
 			{1, 1, 1},// IADD
 			{1, 1, 1},// ISUB
 			{1, 1, 1},// IMUL

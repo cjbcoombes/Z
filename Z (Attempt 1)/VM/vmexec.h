@@ -167,6 +167,66 @@ void vm::Exec(std::iostream& exe,
 				buffer.readCheck<register_t>(&reg1);
 				vm::Flag::set(flags, regs[reg1].i);
 				break;
+
+			case ICMPEQ:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].b = regs[reg2].i == regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].b);
+				break;
+
+			case ICMPNE:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].b = regs[reg2].i != regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].b);
+				break;
+
+			case ICMPGT:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].b = regs[reg2].i > regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].b);
+				break;
+
+			case ICMPLT:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].b = regs[reg2].i < regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].b);
+				break;
+
+			case ICMPGE:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].b = regs[reg2].i >= regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].b);
+				break;
+
+			case ICMPLE:
+				buffer.checkNum(sizeof(register_t) * 3);
+				// Check register bounds?
+				buffer.read<register_t>(&reg1);
+				buffer.read<register_t>(&reg2);
+				buffer.read<register_t>(&reg3);
+				regs[reg1].b = regs[reg2].i <= regs[reg3].i;
+				vm::Flag::set(flags, regs[reg1].b);
+				break;
 			
 			case IADD:
 				buffer.checkNum(sizeof(register_t) * 3);

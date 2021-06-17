@@ -1,0 +1,32 @@
+globalstr GTR, "Greater"
+globalstr LSS, "Less"
+globalstr EQ, "Equal"
+
+movw R1, 0xFFFFFFFF (-1)
+movw R2, 0x00000020 (32) ; Counter
+movw R3, 0x00000010 (16) ; Constant
+
+@ITER
+lnprnt
+iadd R2, R2, R1   ; R2--
+icmp R2           ; If counter is zero:
+jmpz @END         ; halt
+icmpgt NR, R2, R3 ; If R2 > R3:
+jmpnz @GTR        ; Jump to @GTR
+icmplt NR, R2, R3 ; If R2 < R3:
+jmpnz @LSS        ; Jump to @LSS
+jmp @EQ           ; Else (R2 == R3), jump to @EQ
+
+@GTR
+strprntg GTR
+jmp @ITER
+
+@LSS
+strprntg LSS
+jmp @ITER
+
+@EQ
+strprntg EQ
+jmp @ITER
+
+@END

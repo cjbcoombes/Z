@@ -1,11 +1,31 @@
 # Z
 An interpreted programming language with RISC bytecode, and c-style syntax, written in c++
 
+## Running It
+Compiles (for me) in Microsoft Visual Studio Community 2019 Version 16.10.2
+
+Currently my command line arguments are:\
+`Z (Attempt 1).exe -debug -assemble "file.azm" "file.eze" -profile -exec "file.eze"`
+
+Command       | Meaning
+---           | ---    
+debug         | Turns on debug mode. Only affects "assemble" and "exec" commands after this command.
+nodebug       | Turns off debug mode. Only affects "assemble" and "exec" commands after this command.
+profile       | Turns on profile mode. Only affects "exec" commands after this command.
+assemble      | Assembles the first file argument (text, .azm) into the second file argument (binary, .eze)
+exec          | Executes the first file argument (binary, .eze)
+
 ## VM
 #### Bytecode
 A register-based RISC bytecode
 
-#### File Format
+#### AZM File Format
+Anything in parentheses or following a semicolon until a new line is a comment. Ex `(comment)`, `; comment...`
+Everything else is instructions and their arguments separated by whitespace or commas. 
+Anything in double-quotes is treated as a single object (whitespace and commas are not terminators/separators, some escape codes, such as `\"` for ", work).
+See below section **Examples** for examples.
+
+#### EZE File Format
 First 4 bytes: Address of first instruction \
 Next (?) bytes: global memory \
 Next (?) bytes: program
@@ -34,45 +54,50 @@ Possible Arguments: \
 [word] is a 4-byte word \
 [label] is a label, starting with "@", that will be converted to a program address for branching \
 [var] is the name of a global, used for storing and recalling globals \
-[string] is a null-terminated string \
+[string] is a null-terminated string
 
 (F) means it sets the flags based on the result \
+{addr} means the value at address *addr*
 
-Code    | Instruction   | Arguments                 | Action
----     | ---           | ---                       | ---
-0x00    | nop           | N/A                       | Nothing
-0x01    | halt          | N/A                       | Halts the program
-0x??    | strprnt       | [reg1]                    | Prints the null-terminated string starting at the address in [reg1]
-0x??    | rprnt         | [reg1]                    | Prints a hex representation of [reg1]
-0x??    | lnprnt        | N/A                       | Prints a newline character
-0x??    | mov           | [reg1], [reg2]            | Copies [reg1] to [reg2]
-0x??    | movw          | [reg1], [word]            | Puts the word value [word] into [reg1]
-0x??    | movb          | [reg1], [byte]            | Puts the byte value [byte] into [reg1]
-0x??    | loadw         | [reg1], [reg2], [off]     | Load the word at address [reg2] + [off] into [reg1] 
-0x??    | storew        | [reg1], [off], [reg2]     | Store the word from [reg2] at address [reg1] + [off]
-0x??    | loadb         | [reg1], [reg2], [off]     | Load the byte at address [reg2] + [off] into [reg1] 
-0x??    | storeb        | [reg1], [off], [reg2]     | Store the byte from [reg2] at address [reg1] + [off]
-0x??    | jmp           | [label]                   | Jump to [label]
-0x??    | jmpz          | [label]                   | Jump to [label] if the zero flag is set
-0x??    | jmpnz         | [label]                   | Jump to [label] if the zero flag is not set
-0x??    | icmp      (F) | [reg1]                    | Sets the flags based on the integer value in [reg1]
-0x??    | iadd      (F) | [reg1], [reg2], [reg3]    | Adds the values from [reg2] and [reg3] into [reg1] as integers
-0x?? | | | ... int arithmetic ...
-N/A     | N/A           | N/A                       | Separates valid from invalid opcodes. The remaining opcodes are available as commands in assembly, but are converted to the opcodes above in order to be executed
-N/A     | loadgw        | [reg1], [var]             | Load the word at [var] into [reg1]
-N/A     | storegw       | [var], [reg1]             | Store the word in [reg1] at [var]
-N/A     | loadgb        | [reg1], [var]             | Load the byte at [var] into [reg1]
-N/A     | storegb       | [var], [reg1]             | Store the byte in [reg1] at [var]
-N/A     | strprntg      | [var]                     | Print the null-terminated string starting at [var]
-N/A     | N/A           | N/A                       | Separates global and non-global opcodes. The below opcodes must come before all others in a program, and are used to define globals
-N/A     | globalw       | [var], [word]             | Sets global [var] to [word]
-N/A     | globalb       | [var], [byte]             | Sets global [var] to [byte]
-N/A     | globalstr     | [var], [string]           | Sets global [var] to [string]
+Code    | Instruction   | Arguments                 | Equation                       | Action
+---     | ---           | ---                       | ---                            | ---
+0x00    | nop           | N/A                       | N/A                            | Nothing
+0x01    | halt          | N/A                       | N/A                            | Halts the program
+0x??    | strprnt       | [reg1]                    | N/A                            | Prints the null-terminated string starting at the address in [reg1]
+0x??    | rprnt         | [reg1]                    | N/A                            | Prints a hex representation of [reg1]
+0x??    | lnprnt        | N/A                       | N/A                            | Prints a newline character
+0x??    | mov           | [reg1], [reg2]            | [reg1] = [reg2]                | Copies [reg2] to [reg1]
+0x??    | movw          | [reg1], [word]            | [reg1] = [word]                | Puts the word value [word] into [reg1]
+0x??    | movb          | [reg1], [byte]            | [reg1] = [byte]                | Puts the byte value [byte] into [reg1]
+0x??    | loadw         | [reg1], [reg2], [off]     | [reg1] = {[reg2] + [off]}      | Load the word at address [reg2] + [off] into [reg1] 
+0x??    | storew        | [reg1], [off], [reg2]     | {[reg1] + [off]} = [reg2]      | Store the word from [reg2] at address [reg1] + [off]
+0x??    | loadb         | [reg1], [reg2], [off]     | [reg1] = {[reg2] + [off]}      | Load the byte at address [reg2] + [off] into [reg1] 
+0x??    | storeb        | [reg1], [off], [reg2]     | {[reg1] + [off]} = [reg2]      | Store the byte from [reg2] at address [reg1] + [off]
+0x??    | jmp           | [label]                   | N/A                            | Jump to [label]
+0x??    | jmpz          | [label]                   | N/A                            | Jump to [label] if the zero flag is set
+0x??    | jmpnz         | [label]                   | N/A                            | Jump to [label] if the zero flag is not set
+0x??    | icmp      (F) | [reg1]                    | N/A                            | Sets the flags based on the integer value in [reg1]
+0x??    | iadd      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Adds the values from [reg2] and [reg3] into [reg1] as integers
+0x??    | isub      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Subtracts the value in [reg3] from the value in [reg2] into [reg1] as integers
+0x??    | imul      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Multiplies the values from [reg2] and [reg3] into [reg1] as integers
+0x??    | idiv      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Divides the value in [reg2] by the value in [reg3] into [reg1] as integers. Throws divide by zero error if the value in [reg3] is zero.
+0x??    | imod      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Puts value from [reg2] modulo the value in [reg3] into [reg1] as integers. Throws divide by zero error if the value in [reg3] is zero.
+N/A     | N/A           | N/A                       | N/A                            | Separates valid from invalid opcodes. The remaining opcodes are available as commands in assembly, but are converted to the opcodes above in order to be executed
+N/A     | loadgw        | [reg1], [var]             | [reg1] = [var]                 | Load the word at [var] into [reg1]
+N/A     | storegw       | [var], [reg1]             | [var] = [reg1]                 | Store the word in [reg1] at [var]
+N/A     | loadgb        | [reg1], [var]             | [reg1] = [var]                 | Load the byte at [var] into [reg1]
+N/A     | storegb       | [var], [reg1]             | [var] = [reg1]                 | Store the byte in [reg1] at [var]
+N/A     | strprntg      | [var]                     | N/A                            | Print the null-terminated string starting at [var]
+N/A     | N/A           | N/A                       | N/A                            | Separates global and non-global opcodes. The below opcodes must come before all others in a program, and are used to define globals
+N/A     | globalw       | [var], [word]             | [var] = [word]                 | Sets global [var] to [word]
+N/A     | globalb       | [var], [byte]             | [var] = [byte]                 | Sets global [var] to [byte]
+N/A     | globalstr     | [var], [string]           | [var] = [string]               | Sets global [var] to [string]
 
 ##### Stack
 
 ##### Examples
-Note: .azm files should be up-to-date with the bytecode, but .eze files might require regeneration
+Note: .azm files should be up-to-date with the bytecode, but .eze files might require regeneration. \
+Another Note: Many of these add a register to 0xFFFFFFFF (decimal -1) to do subtraction. That's because the increment and decrement commands didn't exist at the time.
 ```
 ; Add 16 and -2 as integers
 movw R0, 0x000000F0 (decimal 16)
@@ -145,9 +170,9 @@ jmpnz @LOOP
 movw R0, 0x00000019 ; # of iterations
 movw R1, 0xFFFFFFFF ; -1
 movw R2, 0x00000011 ; Starting #
-movw R3, 0x00000002 ; # = # - this
-                    ; # = # * this
-movw R4, 0x00000100 ; # = # % this
+movw R3, 0x00000002 ; # = # - R3
+                    ; # = # * R3
+movw R4, 0x00000100 ; # = # % R4
 @JUMP
 rprnt R2
 lnprnt
@@ -156,4 +181,53 @@ imul R2, R2, R3
 imod R2, R2, R4
 iadd R0, R0, R1
 jmpnz @JUMP
+```
+```
+; Files: example6.azm, example6.eze
+; Tests division by zero (should throw error)
+movw R1, 0xFFFFFFFF
+movw R2, 0x01000000 
+movw R3, 0x00000100
+@JUMP
+idiv R4, R2, R3
+iadd R3, R3, R1
+rprnt R4
+lnprnt
+jmp @JUMP
+```
+```
+; Files: example6.azm, example6.eze
+; Tests some comparison operators
+globalstr GTR, "Greater"
+globalstr LSS, "Less"
+globalstr EQ, "Equal"
+
+movw R1, 0xFFFFFFFF (-1)
+movw R2, 0x00000020 (32) ; Counter
+movw R3, 0x00000010 (16) ; Constant
+
+@ITER
+lnprnt
+iadd R2, R2, R1   ; R2--
+icmp R2           ; If counter is zero:
+jmpz @END         ; halt
+icmpgt NR, R2, R3 ; If R2 > R3:
+jmpnz @GTR        ; Jump to @GTR
+icmplt NR, R2, R3 ; If R2 < R3:
+jmpnz @LSS        ; Jump to @LSS
+jmp @EQ           ; Else (R2 == R3), jump to @EQ
+
+@GTR
+strprntg GTR
+jmp @ITER
+
+@LSS
+strprntg LSS
+jmp @ITER
+
+@EQ
+strprntg EQ
+jmp @ITER
+
+@END
 ```
