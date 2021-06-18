@@ -253,6 +253,8 @@ namespace vm {
 			ICMPLT,
 			ICMPGE,
 			ICMPLE,
+			IINC,
+			IDEC,
 			IADD,
 			ISUB,
 			IMUL,
@@ -306,6 +308,8 @@ namespace vm {
 			"icmplt",
 			"icmpge",
 			"icmple",
+			"iinc",
+			"idec",
 			"iadd",
 			"isub",
 			"imul",
@@ -371,6 +375,8 @@ namespace vm {
 			{1, 1, 1},// ICMPLT
 			{1, 1, 1},// ICMPGE
 			{1, 1, 1},// ICMPLE
+			{1, 0, 0},// IINC
+			{1, 0, 0},// IDEC
 			{1, 1, 1},// IADD
 			{1, 1, 1},// ISUB
 			{1, 1, 1},// IMUL

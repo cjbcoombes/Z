@@ -77,6 +77,8 @@ Code    | Instruction   | Arguments                 | Equation                  
 0x??    | jmpz          | [label]                   | N/A                            | Jump to [label] if the zero flag is set
 0x??    | jmpnz         | [label]                   | N/A                            | Jump to [label] if the zero flag is not set
 0x??    | icmp      (F) | [reg1]                    | N/A                            | Sets the flags based on the integer value in [reg1]
+0x??    | iinc      (F) | [reg1]                    | [reg1] = [reg1] + 1            | Increments the integer value in [reg1] by 1
+0x??    | idec      (F) | [reg1]                    | [reg1] = [reg1] - 1            | Decrements the integer value in [reg1] by 1
 0x??    | iadd      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Adds the values from [reg2] and [reg3] into [reg1] as integers
 0x??    | isub      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Subtracts the value in [reg3] from the value in [reg2] into [reg1] as integers
 0x??    | imul      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Multiplies the values from [reg2] and [reg3] into [reg1] as integers
@@ -97,7 +99,7 @@ N/A     | globalstr     | [var], [string]           | [var] = [string]          
 
 ##### Examples
 Note: .azm files should be up-to-date with the bytecode, but .eze files might require regeneration. \
-Another Note: Many of these add a register to 0xFFFFFFFF (decimal -1) to do subtraction. That's because the increment and decrement commands didn't exist at the time.
+Another Note: Many of these add a register to 0xFFFFFFFF (decimal -1) to do subtraction. That's because the increment and decrement instructions didn't exist at the time.
 ```
 ; Add 16 and -2 as integers
 movw R0, 0x000000F0 (decimal 16)

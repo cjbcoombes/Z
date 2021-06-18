@@ -228,6 +228,18 @@ void vm::Exec(std::iostream& exe,
 				vm::Flag::set(flags, regs[reg1].b);
 				break;
 			
+			case IINC:
+				buffer.readCheck<register_t>(&reg1);
+				regs[reg1].i++;
+				vm::Flag::set(flags, regs[reg1].i);
+				break;
+
+			case IDEC:
+				buffer.readCheck<register_t>(&reg1);
+				regs[reg1].i--;
+				vm::Flag::set(flags, regs[reg1].i);
+				break;
+
 			case IADD:
 				buffer.checkNum(sizeof(register_t) * 3);
 				// Check register bounds?
