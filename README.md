@@ -5,7 +5,7 @@ An interpreted programming language with RISC bytecode, and c-style syntax, writ
 Compiles (for me) in Microsoft Visual Studio Community 2019 Version 16.10.2
 
 Currently my command line arguments are:\
-`Z (Attempt 1).exe -debug -assemble "file.azm" "file.eze" -profile -exec "file.eze"`
+`z1_0.exe -debug -assemble "file.azm" "file.eze" -profile -exec "file.eze"`
 
 Command       | Meaning
 ---           | ---    
@@ -77,6 +77,12 @@ Code    | Instruction   | Arguments                 | Equation                  
 0x??    | jmpz          | [label]                   | N/A                            | Jump to [label] if the zero flag is set
 0x??    | jmpnz         | [label]                   | N/A                            | Jump to [label] if the zero flag is not set
 0x??    | icmp      (F) | [reg1]                    | N/A                            | Sets the flags based on the integer value in [reg1]
+0x??    | icmpeq    (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] == [reg3]      | Checks if the integers in [reg2] and [reg3] are equal, stores the boolean result in [reg1]
+0x??    | icmpne    (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] != [reg3]      | Checks if the integers in [reg2] and [reg3] are not equal, stores the boolean result in [reg1]
+0x??    | icmpgt    (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] > [reg3]       | Checks if the integer in [reg2] is greater than that in [reg3], stores the boolean result in [reg1]
+0x??    | icmplt    (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] < [reg3]       | Checks if the integer in [reg2] is less than that in [reg3], stores the boolean result in [reg1]
+0x??    | icmpge    (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] >= [reg3]      | Checks if the integer in [reg2] is greater than or equal to that in [reg3], stores the boolean result in [reg1]
+0x??    | icmple    (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] <= [reg3]      | Checks if the integer in [reg2] is less than or equal to that in [reg3], stores the boolean result in [reg1]
 0x??    | iinc      (F) | [reg1]                    | [reg1] = [reg1] + 1            | Increments the integer value in [reg1] by 1
 0x??    | idec      (F) | [reg1]                    | [reg1] = [reg1] - 1            | Decrements the integer value in [reg1] by 1
 0x??    | iadd      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Adds the values from [reg2] and [reg3] into [reg1] as integers
