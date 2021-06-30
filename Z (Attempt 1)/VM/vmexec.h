@@ -294,26 +294,6 @@ void vm::Exec(std::iostream& exe,
 				vm::Flag::set(flags, regs[reg1].i);
 				break;
 
-			case BAND:
-				buffer.checkNum(sizeof(register_t) * 3);
-				// Check register bounds?
-				buffer.read<register_t>(&reg1);
-				buffer.read<register_t>(&reg2);
-				buffer.read<register_t>(&reg3);
-				regs[reg1].b = regs[reg2].b && regs[reg3].b;
-				vm::Flag::set(flags, regs[reg1].b);
-				break;
-
-			case BOR:
-				buffer.checkNum(sizeof(register_t) * 3);
-				// Check register bounds?
-				buffer.read<register_t>(&reg1);
-				buffer.read<register_t>(&reg2);
-				buffer.read<register_t>(&reg3);
-				regs[reg1].b = regs[reg2].b || regs[reg3].b;
-				vm::Flag::set(flags, regs[reg1].b);
-				break;
-
 			default:
 				EXE_THROW(UNKNOWN_OPCODE);
 		}

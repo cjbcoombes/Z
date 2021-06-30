@@ -34,9 +34,9 @@ namespace vm {
 		// Size of a short
 		typedef uint16_t short_t;
 
-		// Register id (byte)
+		// Register id
 		typedef uint8_t register_t;
-		// Opcode id (byte)
+		// Opcode id
 		typedef uint8_t opcode_t;
 
 		// Memory offset (short)
@@ -49,7 +49,6 @@ namespace vm {
 		typedef int32_t int_t;
 		// Bool (byte)
 		typedef int8_t bool_t;
-
 
 		union Value {
 			// For storing objects of various arbitrary sizes
@@ -262,9 +261,6 @@ namespace vm {
 			IDIV,
 			IMOD,
 			//
-			BAND,
-			BOR,
-			//
 			// 
 			// 
 			VALID_OPCODE_BREAK,
@@ -320,9 +316,6 @@ namespace vm {
 			"idiv",
 			"imod",
 			//
-			"band",
-			"bor",
-			// 
 			// 
 			// 
 			"",
@@ -381,7 +374,7 @@ namespace vm {
 			{1, 1, 1},// ICMPGT
 			{1, 1, 1},// ICMPLT
 			{1, 1, 1},// ICMPGE
-			{1, 1, 1},// ICMPLE 
+			{1, 1, 1},// ICMPLE
 			{1, 0, 0},// IINC
 			{1, 0, 0},// IDEC
 			{1, 1, 1},// IADD
@@ -390,9 +383,6 @@ namespace vm {
 			{1, 1, 1},// IDIV
 			{1, 1, 1},// IMOD
 			//
-			{1, 1, 1},// BAND
-			{1, 1, 1},// BOR
-			// 
 			// 
 			// 
 			{0, 0, 0},// VALID_OPCODE_BREAK

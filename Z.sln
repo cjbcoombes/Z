@@ -7,27 +7,23 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Z (Attempt 1)", "Z (Attempt
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B34C0D51-3E3B-4D52-AB47-5D1EE9F39646}"
 	ProjectSection(SolutionItems) = preProject
+		Examples\example1.azm = Examples\example1.azm
+		Examples\example1.eze = Examples\example1.eze
+		Examples\example2.azm = Examples\example2.azm
+		Examples\example2.eze = Examples\example2.eze
+		Examples\example3.azm = Examples\example3.azm
+		Examples\example3.eze = Examples\example3.eze
+		Examples\example4.azm = Examples\example4.azm
+		Examples\example4.eze = Examples\example4.eze
+		Examples\example5.azm = Examples\example5.azm
+		Examples\example5.eze = Examples\example5.eze
+		Examples\example6.azm = Examples\example6.azm
+		Examples\example6.eze = Examples\example6.eze
+		Examples\example7.azm = Examples\example7.azm
+		Examples\example7.eze = Examples\example7.eze
+		Examples\fibonacci1.azm = Examples\fibonacci1.azm
+		Examples\fibonacci1.eze = Examples\fibonacci1.eze
 		README.md = README.md
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AssemblyExamples", "AssemblyExamples", "{C219D904-BFBF-4E68-8126-0DFCFD7081A6}"
-	ProjectSection(SolutionItems) = preProject
-		AssemblyExamples\example1.azm = AssemblyExamples\example1.azm
-		AssemblyExamples\example1.eze = AssemblyExamples\example1.eze
-		AssemblyExamples\example2.azm = AssemblyExamples\example2.azm
-		AssemblyExamples\example2.eze = AssemblyExamples\example2.eze
-		AssemblyExamples\example3.azm = AssemblyExamples\example3.azm
-		AssemblyExamples\example3.eze = AssemblyExamples\example3.eze
-		AssemblyExamples\example4.azm = AssemblyExamples\example4.azm
-		AssemblyExamples\example4.eze = AssemblyExamples\example4.eze
-		AssemblyExamples\example5.azm = AssemblyExamples\example5.azm
-		AssemblyExamples\example5.eze = AssemblyExamples\example5.eze
-		AssemblyExamples\example6.azm = AssemblyExamples\example6.azm
-		AssemblyExamples\example6.eze = AssemblyExamples\example6.eze
-		AssemblyExamples\example7.azm = AssemblyExamples\example7.azm
-		AssemblyExamples\example7.eze = AssemblyExamples\example7.eze
-		AssemblyExamples\fibonacci1.azm = AssemblyExamples\fibonacci1.azm
-		AssemblyExamples\fibonacci1.eze = AssemblyExamples\fibonacci1.eze
 	EndProjectSection
 EndProject
 Global
@@ -49,9 +45,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{C219D904-BFBF-4E68-8126-0DFCFD7081A6} = {B34C0D51-3E3B-4D52-AB47-5D1EE9F39646}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B5281B00-DE57-4461-B910-30998E476FCE}
