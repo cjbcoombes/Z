@@ -244,6 +244,7 @@ namespace vm {
 			STOREB,
 			//
 			JMP,
+			JMPR,
 			JMPZ,
 			JMPNZ,
 			//
@@ -302,6 +303,7 @@ namespace vm {
 			"storeb",
 			//
 			"jmp",
+			"jmpr",
 			"jmpz",
 			"jmpnz",
 			//
@@ -372,6 +374,7 @@ namespace vm {
 			{1, 4, 1},// STOREB
 			//
 			{5, 0, 0},// JMP
+			{1, 0, 0},// JMPR
 			{5, 0, 0},// JMPZ
 			{5, 0, 0},// JMPNZ
 			//
@@ -456,16 +459,16 @@ namespace vm {
 	public:
 		static constexpr unsigned int STACK_SIZE = 2048;
 
-		char* top;// Actually bottom
-		char* bottom;// Actually top
+		char* top;
+		char* bottom;
 
 		Stack() {
-			top = new char[STACK_SIZE];
-			bottom = top + STACK_SIZE;
+			bottom = new char[STACK_SIZE];
+			top = bottom + STACK_SIZE;
 		}
 
 		~Stack() {
-			delete[] top;
+			delete[] bottom;
 		}
 	};
 

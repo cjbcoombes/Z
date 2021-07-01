@@ -178,11 +178,22 @@ void vm::Assemble(std::iostream& asm_,
 						break;
 
 					case ArgType::ARG_WORD:
-						parseWord(word, str);
-						WRITE(word, word_t);
-					#ifdef VM_DEBUG
-						debug << str << ' ';
-					#endif
+						if (str[0] != '@') {
+							parseWord(word, str);
+							WRITE(word, word_t);
+						#ifdef VM_DEBUG
+							debug << str << ' ';
+						#endif
+							break;
+						}
+						// NOTE: INTENTIONAL FALLTHROUGH
+					case ArgType::ARG_LABEL:
+						stdstr.assign(str);
+						if (!hasKey(labels, stdstr)) {
+							labels[stdstr] = Label();
+						}
+						labels[stdstr].refs.push_back(exe.tellp());
+						WRITE(placeholderWord, word_t);
 						break;
 
 					case ArgType::ARG_BYTE:
@@ -199,15 +210,6 @@ void vm::Assemble(std::iostream& asm_,
 					#ifdef VM_DEBUG
 						debug << str << ' ';
 					#endif
-						break;
-
-					case ArgType::ARG_LABEL:
-						stdstr.assign(str);
-						if (!hasKey(labels, stdstr)) {
-							labels[stdstr] = Label();
-						}
-						labels[stdstr].refs.push_back(exe.tellp());
-						WRITE(placeholderWord, word_t);
 						break;
 
 					case ArgType::ARG_VAR:

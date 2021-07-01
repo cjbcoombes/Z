@@ -28,6 +28,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AssemblyExamples", "Assembl
 		AssemblyExamples\example7.eze = AssemblyExamples\example7.eze
 		AssemblyExamples\fibonacci1.azm = AssemblyExamples\fibonacci1.azm
 		AssemblyExamples\fibonacci1.eze = AssemblyExamples\fibonacci1.eze
+		AssemblyExamples\fibonacci2.azm = AssemblyExamples\fibonacci2.azm
+		AssemblyExamples\fibonacci2.eze = AssemblyExamples\fibonacci2.eze
 	EndProjectSection
 EndProject
 Global

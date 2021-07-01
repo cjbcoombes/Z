@@ -51,13 +51,13 @@ Possible Arguments: \
 [reg] is a 1-byte register ID \
 [off] is a 2-byte offset used for branching \
 [byte] is a byte \
-[word] is a 4-byte word \
+[word] is a 4-byte word. A [label] can go in the place of any word, and the program address will be inserted there\
 [label] is a label, starting with "@", that will be converted to a program address for branching \
 [var] is the name of a global, used for storing and recalling globals \
 [string] is a null-terminated string
 
 (F) means it sets the flags based on the result \
-{addr} means the value at address *addr*
+\{addr\} means the value at address addr
 
 Code    | Instruction   | Arguments                 | Equation                       | Action
 ---     | ---           | ---                       | ---                            | ---
@@ -238,4 +238,74 @@ strprntg EQ
 jmp @ITER
 
 @END
+```
+```
+; Files: fibonacci2.azm, fibonacci2.eze
+; Fibonacci using recursion and the stack
+; Basically: FIB(x) = 1 if x <= 2
+;                       else FIB(x - 1) + FIB(x - 2)
+globalw N, 0x10
+
+@FIBONACCI
+; Stack
+;             | BP points here  | BP + 4          | BP + 8
+; Other stuff | BP to return to | IP to return to | Argument
+
+; Return value goes in R0
+
+movw R1, 0x00000002     ; Decimal 2
+loadw R2, BP, 0x8       ; Load argument into register
+icmple NR, R2, R1       ; Compare (dump boolean output)
+jmpz @CALC              ; If > 2, jump to CALC
+movw R0, 0x00000001     ; Else, set return value to 0
+jmp @RETURN             ; Jump to RETURN
+
+@CALC
+idec R2                 ; Decrement argument
+storew BP, 0xC, R2      ; Store for later
+storew BP, 0x10, BP     ; Put BP on end of stack
+movw R3, @CALC_1        ; Put return IP in register
+storew BP, 0x14, R3     ; And then on the stack
+storew BP, 0x18, R2     ; Put argument on the end of the stack
+movw R1, 0x00000010     ; Decimal 16
+iadd BP, BP, R1         ; Set new BP
+jmp @FIBONACCI
+@CALC_1
+loadw BP, BP, 0x0       ; Reset BP
+
+loadw R2, BP, 0xC       ; Recover argument
+storew BP, 0xC, R0      ; Store result for later
+
+; Do it again
+idec R2                 ; Decrement argument
+storew BP, 0x10, BP     ; Put BP on end of stack
+movw R3, @CALC_2        ; Put return IP in register
+storew BP, 0x14, R3     ; And then on the stack
+storew BP, 0x18, R2     ; Put argument on the end of the stack
+movw R1, 0x00000010     ; Decimal 16
+iadd BP, BP, R1         ; Set new BP
+jmp @FIBONACCI
+@CALC_2
+loadw BP, BP, 0x0       ; Reset BP
+
+loadw R2, BP, 0xC       ; Recover previous result
+iadd R0, R0, R2         ; Add!
+; Auto continues to RETURN
+
+@RETURN
+loadw R3, BP, 0x4       ; Load IP to return to
+jmpr R3                 ; Jump to IP (caller is responsible for handling BP)
+
+
+@__START__
+storew BP, 0x0, BP      ; Put BP on end of stack
+movw R3, @END           ; Put return IP in register
+storew BP, 0x4, R3      ; And then on the stack
+loadgw R2, N            ; Starting argument
+storew BP, 0x8, R2      ; Put argument on the end of the stack
+jmp @FIBONACCI
+@END
+rprnt R0
+lnprnt
+halt
 ```

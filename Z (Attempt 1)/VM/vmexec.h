@@ -28,6 +28,7 @@ void vm::Exec(std::iostream& exe,
 	word_t word = 0;
 	byte_t byte = 0;
 	offset_t off = 0;
+	address_t addr = 0;
 
 	const bool printOpcode = options.flags & vm::ExecOptions::PRINT_OPCODE;
 	const bool profile = options.flags & vm::ExecOptions::PROFILE;
@@ -145,21 +146,26 @@ void vm::Exec(std::iostream& exe,
 				break;
 
 			case JMP:
-				buffer.readCheck<word_t>(&word);
-				buffer.ptr = buffer.start + word;
+				buffer.readCheck<address_t>(&addr);
+				buffer.ptr = buffer.start + addr;
+				break;
+
+			case JMPR:
+				buffer.readCheck<register_t>(&reg1);
+				buffer.ptr = buffer.start + regs[reg1].addr;
 				break;
 
 			case JMPZ:
-				buffer.readCheck<word_t>(&word);
+				buffer.readCheck<address_t>(&addr);
 				if (flags & vm::Flag::ZERO) {
-					buffer.ptr = buffer.start + word;
+					buffer.ptr = buffer.start + addr;
 				}
 				break;
 
 			case JMPNZ:
-				buffer.readCheck<word_t>(&word);
+				buffer.readCheck<address_t>(&addr);
 				if (!(flags & vm::Flag::ZERO)) {
-					buffer.ptr = buffer.start + word;
+					buffer.ptr = buffer.start + addr;
 				}
 				break;
 
