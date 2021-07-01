@@ -32,6 +32,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AssemblyExamples", "Assembl
 		AssemblyExamples\fibonacci2.eze = AssemblyExamples\fibonacci2.eze
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LanguageDesign", "LanguageDesign", "{E3758409-28C7-484B-96A9-66D3CA4DBF58}"
+	ProjectSection(SolutionItems) = preProject
+		LanguageDesign\design.md = LanguageDesign\design.md
+		LanguageDesign\example1.z = LanguageDesign\example1.z
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -54,6 +60,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C219D904-BFBF-4E68-8126-0DFCFD7081A6} = {B34C0D51-3E3B-4D52-AB47-5D1EE9F39646}
+		{E3758409-28C7-484B-96A9-66D3CA4DBF58} = {B34C0D51-3E3B-4D52-AB47-5D1EE9F39646}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B5281B00-DE57-4461-B910-30998E476FCE}

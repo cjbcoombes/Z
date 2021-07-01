@@ -2,3 +2,16 @@
 // that I think look good, which I will turn 
 // into a full-fledged syntax later
 
+int: x;
+
+int(int): fib(n) {
+	if: n <= 2 {
+		return 1;
+	} 
+	else: {
+		return fib(n - 1) + fib(n - 2);
+	}
+};
+
+x = fib(5);
+print(x);
