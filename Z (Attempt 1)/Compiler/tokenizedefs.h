@@ -1,3 +1,5 @@
+#pragma once
+#include "compile.h"
 
 bool matchCharIn(char c, char* const& list) {
 	int i = 0;

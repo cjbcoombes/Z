@@ -1,4 +1,3 @@
-#include "compile.h"
 #include "tokenizedefs.h"
 
 void compile::Tokenize(std::iostream& file, 

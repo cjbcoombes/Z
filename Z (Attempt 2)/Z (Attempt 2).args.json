@@ -1,0 +1,14 @@
+{
+  "FileVersion": 2,
+  "Id": "8d47a112-13f0-497b-9919-373ca6b8f169",
+  "Items": [
+    {
+      "Id": "e93abefb-6395-439c-b536-af98ed1b1879",
+      "Command": "-exec"
+    },
+    {
+      "Id": "59eb48b9-4a63-4a72-944f-cbdc8f67b4c8",
+      "Command": "-test"
+    }
+  ]
+}

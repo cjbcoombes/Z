@@ -38,6 +38,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LanguageDesign", "LanguageD
 		LanguageDesign\example1.z = LanguageDesign\example1.z
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Z (Attempt 2)", "Z (Attempt 2)\Z (Attempt 2).vcxproj", "{8D47A112-13F0-497B-9919-373CA6B8F169}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -54,6 +56,14 @@ Global
 		{9D87D364-12C1-4E9D-98C1-1E21A4562694}.Release|x64.Build.0 = Release|x64
 		{9D87D364-12C1-4E9D-98C1-1E21A4562694}.Release|x86.ActiveCfg = Release|Win32
 		{9D87D364-12C1-4E9D-98C1-1E21A4562694}.Release|x86.Build.0 = Release|Win32
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Debug|x64.ActiveCfg = Debug|x64
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Debug|x64.Build.0 = Debug|x64
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Debug|x86.ActiveCfg = Debug|Win32
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Debug|x86.Build.0 = Debug|Win32
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Release|x64.ActiveCfg = Release|x64
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Release|x64.Build.0 = Release|x64
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Release|x86.ActiveCfg = Release|Win32
+		{8D47A112-13F0-497B-9919-373CA6B8F169}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
