@@ -15,6 +15,9 @@ profile       | Turns on profile mode. Only affects "exec" commands after this c
 assemble      | Assembles the first file argument (text, .azm) into the second file argument (binary, .eze)
 exec          | Executes the first file argument (binary, .eze)
 
+## The Language
+Nothin' here yet...
+
 ## VM
 #### Bytecode
 A register-based RISC bytecode
@@ -26,7 +29,8 @@ Anything in double-quotes is treated as a single object (whitespace and commas a
 See below section **Examples** for examples.
 
 #### EZE File Format
-First 4 bytes: Address of first instruction \
+Fist 4 bytes: Size of allocated memory for stack \
+Second 4 bytes: Address of first instruction \
 Next (?) bytes: global memory \
 Next (?) bytes: program
 
@@ -102,6 +106,7 @@ N/A     | globalb       | [var], [byte]             | [var] = [byte]            
 N/A     | globalstr     | [var], [string]           | [var] = [string]               | Sets global [var] to [string]
 
 ##### Stack
+The program provides a stack base pointer, BP, and that's it. See example `fibonacci2.azm` for an example
 
 ##### Examples
 Note: .azm files should be up-to-date with the bytecode, but .eze files might require regeneration. \

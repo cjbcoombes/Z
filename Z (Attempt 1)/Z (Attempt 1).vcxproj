@@ -19,10 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Compiler\compile.cpp" />
+    <ClCompile Include="Compiler\tokenize.h" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="VM\vm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Compiler\compile.h" />
+    <ClInclude Include="Compiler\tokenizedefs.h" />
     <ClInclude Include="VM\vmassemble.h" />
     <ClInclude Include="VM\vmassembledefs.h" />
     <ClInclude Include="VM\vmexec.h" />

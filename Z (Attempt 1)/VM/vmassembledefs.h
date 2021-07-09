@@ -37,12 +37,11 @@ void parseOpcode(vm::types::opcode_t& opcode, char* const& str) {
 		j = 0;
 		while (true) {
 			if (str[j] != curr[j])
-				goto next;
+				break;
 
 			if (str[j++] == '\0')
 				return;
 		}
-	next:;
 	}
 
 	throw vm::AssemblyError::AssemblyError(vm::AssemblyError::INVALID_OPCODE, str);

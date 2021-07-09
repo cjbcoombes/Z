@@ -1,0 +1,36 @@
+{
+  "FileVersion": 2,
+  "Id": "9d87d364-12c1-4e9d-98c1-1e21a4562694",
+  "Items": [
+    {
+      "Id": "6ed05b39-f013-43e9-bb0b-014038b144c2",
+      "Command": "Debug",
+      "Items": [
+        {
+          "Id": "225c5c64-7beb-4c67-b151-e11f9da48455",
+          "Command": "-debug"
+        }
+      ]
+    },
+    {
+      "Id": "f8caa569-9a42-4cfe-9c9f-c2cdc15c9a1c",
+      "Command": "Assemble",
+      "Items": [
+        {
+          "Id": "f29652ce-3a8c-4cbd-b977-9c4da506fa9c",
+          "Command": "-assemble \"..\\AssemblyExamples\\fibonacci2.azm\" \"..\\AssemblyExamples\\fibonacci2.eze\""
+        }
+      ]
+    },
+    {
+      "Id": "28bbc53e-a5ac-4280-99e2-0a9c37aefb11",
+      "Command": "Exec",
+      "Items": [
+        {
+          "Id": "70e8bea2-c279-4c94-bc06-0df607e021d5",
+          "Command": "-profile -exec \"..\\AssemblyExamples\\fibonacci2.eze\""
+        }
+      ]
+    }
+  ]
+}

@@ -224,6 +224,8 @@ namespace vm {
 
 	// Use of namespace instead of enum class allows for implicit casting
 	namespace Opcode {
+
+		// TODO: Stack size opcode
 		// Enum for opcodes
 		enum {
 			NOP,
@@ -462,9 +464,9 @@ namespace vm {
 		char* top;
 		char* bottom;
 
-		Stack() {
-			bottom = new char[STACK_SIZE];
-			top = bottom + STACK_SIZE;
+		Stack(unsigned int size) {
+			bottom = new char[size];
+			top = bottom + size;
 		}
 
 		~Stack() {
@@ -483,7 +485,7 @@ namespace vm {
 	// ## Exec function declarations
 
 	struct ExecOptions {
-		static enum {
+		enum {
 			PRINT_OPCODE = 1,
 			PROFILE = 2
 		};

@@ -15,7 +15,9 @@ void vm::Exec(std::iostream& exe,
 
 	FileBuffer buffer(exe);
 
-	Stack stack;
+	word_t word = 0;
+	buffer.readCheck<word_t>(&word);
+	Stack stack(word);
 	Value regs[vm::Register::GP_REGISTER_COUNT + vm::Register::GP_REGISTER_OFFSET];
 	regs[0].word = reinterpret_cast<word_t>(stack.bottom);// BP
 	regs[1].word = reinterpret_cast<word_t>(buffer.start);// GP
@@ -25,7 +27,6 @@ void vm::Exec(std::iostream& exe,
 	register_t reg1 = 0;
 	register_t reg2 = 0;
 	register_t reg3 = 0;
-	word_t word = 0;
 	byte_t byte = 0;
 	offset_t off = 0;
 	address_t addr = 0;
@@ -44,7 +45,6 @@ void vm::Exec(std::iostream& exe,
 	buffer.ptr = buffer.start + word;
 	while (!buffer.atEnd()) {
 		buffer.read<opcode_t>(&opcode);
-		// If sizeof(opcode_t) > 1 then buffer.readCheck<opcode_t>(&test);
 
 	#ifdef VM_DEBUG
 		if (printOpcode) {

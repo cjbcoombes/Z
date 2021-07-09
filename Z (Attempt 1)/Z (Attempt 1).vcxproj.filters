@@ -8,6 +8,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Compiler">
+      <UniqueIdentifier>{9db32f00-1d06-43ca-aae2-0969503409bc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -15,6 +18,12 @@
     </ClCompile>
     <ClCompile Include="VM\vm.cpp">
       <Filter>VM</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\compile.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler\tokenize.h">
+      <Filter>Compiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +41,12 @@
     </ClInclude>
     <ClInclude Include="VM\vmexecdefs.h">
       <Filter>VM</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\compile.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\tokenizedefs.h">
+      <Filter>Compiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

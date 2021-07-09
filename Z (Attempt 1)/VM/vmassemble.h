@@ -21,7 +21,8 @@ void vm::Assemble(std::iostream& asm_,
 	std::unordered_map<std::string, short_t> vars;
 	std::string startstr = "@__START__";
 	labels[startstr] = Label(0);
-	labels[startstr].refs.push_back(0);
+	labels[startstr].refs.push_back(4);
+
 
 	opcode_t opcode = NOP;
 	opcode_t tempOpcode = NOP;
@@ -47,9 +48,12 @@ void vm::Assemble(std::iostream& asm_,
 #ifdef VM_DEBUG
 	debug << STRM_DEFAULT << "[DEBUG] Bytecode assembly debug:";
 #endif
+
+	byteCounter = 2048; // Temporarily used for stack size
+	WRITE(byteCounter, word_t);
 	byteCounter = 4;
 	WRITE(byteCounter, word_t);// First instruction address
-	byteCounter = 4;
+	byteCounter = 8;
 	while (!end) {
 		asm_.get(c);
 		end = asm_.eof();
@@ -111,17 +115,20 @@ void vm::Assemble(std::iostream& asm_,
 			str[len++] = '\0';
 
 			if (opcode == NOP || args[opcode][argc] == ArgType::ARG_NONE) {
+			#ifdef VM_DEBUG
+				debug << '\n';
+			#endif
 				if (str[0] == '@') {
 					stdstr.assign(str);
 					if (!hasKey(labels, stdstr)) {
 						labels[stdstr] = Label();
 					}
 					labels[stdstr].addr = byteCounter;
+				#ifdef VM_DEBUG
+					debug << str << ' ';
+				#endif
 				} else {
 
-				#ifdef VM_DEBUG
-					debug << '\n';
-				#endif
 					parseOpcode(opcode, str);
 
 					if (isGlobalSet) {
@@ -194,6 +201,9 @@ void vm::Assemble(std::iostream& asm_,
 						}
 						labels[stdstr].refs.push_back(exe.tellp());
 						WRITE(placeholderWord, word_t);
+					#ifdef VM_DEBUG
+						debug << str << ' ';
+					#endif
 						break;
 
 					case ArgType::ARG_BYTE:
@@ -223,10 +233,16 @@ void vm::Assemble(std::iostream& asm_,
 							WRITE(regGP, register_t);
 							WRITE(vars[stdstr], short_t);
 						}
+					#ifdef VM_DEBUG
+						debug << str << ' ';
+					#endif
 						break;
 
 					case ArgType::ARG_STR:
 						WRITE_N(str, len);
+					#ifdef VM_DEBUG
+						debug << '"' << str << "\" ";
+					#endif
 						break;
 				}
 				if (++argc >= MAX_ARGS) {
