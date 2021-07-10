@@ -1,0 +1,2 @@
+movw R0, 0x1
+movw R1, 0x2

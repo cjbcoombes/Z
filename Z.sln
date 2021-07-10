@@ -30,6 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AssemblyExamples", "Assembl
 		AssemblyExamples\fibonacci1.eze = AssemblyExamples\fibonacci1.eze
 		AssemblyExamples\fibonacci2.azm = AssemblyExamples\fibonacci2.azm
 		AssemblyExamples\fibonacci2.eze = AssemblyExamples\fibonacci2.eze
+		AssemblyExamples\testing1.azm = AssemblyExamples\testing1.azm
+		AssemblyExamples\testing1.eze = AssemblyExamples\testing1.eze
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LanguageDesign", "LanguageDesign", "{E3758409-28C7-484B-96A9-66D3CA4DBF58}"

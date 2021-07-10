@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>                                                                                                                                                                                                                                                                                       
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -8,7 +9,9 @@
 	sizeof(arr) / sizeof(arr[0])
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ANSI codes
+// ANSI codes (and other io utils)
+
+#define IO_END "\n\n\n"
 
 #define IO_NORM "\033[0m"
 
@@ -31,14 +34,14 @@ int stringMatchAt(const char* const match, const char* const strings[], int len)
 // Flags Struct
 
 struct Flags {
-	int bits = 0;
+	int bits;
 	
 	Flags();
 	Flags(int bitsIn);
 
 	// TODO: Implement these
-	bool hasFlag(int flag);
-	void setFlag(int flag);
-	void unsetFlag(int flag);
-	void toggleFlag(int flag);
+	bool hasFlags(int flags);
+	void setFlags(int flags);
+	void unsetFlags(int flags);
+	void toggleFlags(int flags);
 };

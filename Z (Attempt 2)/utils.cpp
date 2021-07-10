@@ -38,5 +38,21 @@ int stringMatchAt(const char* const match, const char* const strings[], int len)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Flags Struct
 
-Flags::Flags() {}
+Flags::Flags() : bits(0) {}
 Flags::Flags(int bitsIn) : bits(bitsIn) {}
+
+bool Flags::hasFlags(int flags) {
+	return (bits & flags) == flags;
+}
+
+void Flags::setFlags(int flags) {
+	bits |= flags;
+}
+
+void Flags::unsetFlags(int flags) {
+	bits &= ~flags;
+}
+
+void Flags::toggleFlags(int flags) {
+	bits ^= flags;
+}

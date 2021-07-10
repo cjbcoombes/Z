@@ -21,16 +21,6 @@
           "Command": "-assemble \"..\\AssemblyExamples\\fibonacci2.azm\" \"..\\AssemblyExamples\\fibonacci2.eze\""
         }
       ]
-    },
-    {
-      "Id": "28bbc53e-a5ac-4280-99e2-0a9c37aefb11",
-      "Command": "Exec",
-      "Items": [
-        {
-          "Id": "70e8bea2-c279-4c94-bc06-0df607e021d5",
-          "Command": "-profile -exec \"..\\AssemblyExamples\\fibonacci2.eze\""
-        }
-      ]
     }
   ]
 }
