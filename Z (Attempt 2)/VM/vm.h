@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../utils.h"
-
+#include "..\utils.h"
+#include "opcode.h"
 
 namespace vm {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,28 +29,7 @@ namespace vm {
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Opcodes
-	
-	namespace opcode {
-		enum Opcode {
-			NOP,
-			HALT
-		};
-
-		constexpr const char* const strings[] = {
-			"nop",
-			"halt"
-		};
-
-		constexpr int MAX_ARGS = 3;
-		enum class ArgType {
-			ARG_NONE,
-			ARG_REG,
-			ARG_WORD,
-			ARG_BYTE,
-			ARG_SHORT
-		};
-	}
+	// Opcodes: Included in separate header file
 
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~

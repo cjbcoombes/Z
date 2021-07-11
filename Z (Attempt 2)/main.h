@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils.h"
-#include "VM/vm.h"
+#include "VM\vm.h"
 
 int assemble(const char* const assemblyFile, const char* const outputFile, Flags assemblyFlags);
 

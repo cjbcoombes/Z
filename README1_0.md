@@ -1,29 +1,19 @@
-# Z v2.0
+# Z (1.0)
 An interpreted programming language with RISC bytecode, and c-style syntax, written in c++
 
-## Changes from v1.0
-The main reason for starting a new version was to clean up some of the code for the previous one. v1.0 has a working vm,
-but that vm was created as I was learning how to design it, and as such has some flaws. The new version intends to take
-that knowledge to streamline the code.
-
-#### Major Changes:
-- The new opcodes `ifz`, `ifnz`, etc. are intended to make any command possibly conditional
-- Conditional operators no longer store the result in a register, but the zero flag can be stored as a boolean using TODO
 ## Running It
 Compiles (for me) in Microsoft Visual Studio Community 2019 Version 16.10.2
 
 Currently my command line arguments are:\
-`z2_0.exe -debug -profile -asmandexec "file.azm" "file.eze"`
+`z1_0.exe -debug -assemble "file.azm" "file.eze" -profile -exec "file.eze"`
 
 Command       | Meaning
 ---           | ---    
-debug         | Turns on debug mode. Only affects "assemble," "exec," and "asmandexec" commands after this command.
-nodebug       | Turns off debug mode. Only affects "assemble," "exec," and "asmandexec" commands after this command.
-profile       | Turns on profile mode. Only affects "exec" and "asmandexec" commands after this command.
-noprofile     | Turns off profile mode. Only affects "exec" and "asmandexec" commands after this command.
+debug         | Turns on debug mode. Only affects "assemble" and "exec" commands after this command.
+nodebug       | Turns off debug mode. Only affects "assemble" and "exec" commands after this command.
+profile       | Turns on profile mode. Only affects "exec" commands after this command.
 assemble      | Assembles the first file argument (text, .azm) into the second file argument (binary, .eze)
 exec          | Executes the first file argument (binary, .eze)
-asmandexec    | Assembles the first file argument (text, .azm) into the second file argument (binary, .eze), which is then executed
 
 ## The Language
 Nothin' here yet...

@@ -3,8 +3,12 @@
   "Id": "8d47a112-13f0-497b-9919-373ca6b8f169",
   "Items": [
     {
+      "Id": "a667b501-eaa2-4d97-a13c-7c17d46156c1",
+      "Command": "-debug -assemble \"..\\AssemblyExamples\\fibonacci2.azm\" \"..\\AssemblyExamples\\fibonacci2.eze\" -profile -exec \"..\\AssemblyExamples\\fibonacci2.eze\""
+    },
+    {
       "Id": "e93abefb-6395-439c-b536-af98ed1b1879",
-      "Command": ""
+      "Command": "-debug -profile -asmandexec \"..\\AssemblyExamples\\testing1.azm\" \"..\\AssemblyExamples\\testing1.eze\""
     }
   ]
 }

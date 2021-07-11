@@ -29,5 +29,8 @@
     <ClInclude Include="utils.h">
       <Filter>Main</Filter>
     </ClInclude>
+    <ClInclude Include="VM\opcode.h">
+      <Filter>VM</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B34C0D51-3E3B-4D52-AB47-5D1EE9F39646}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
+		README1_0.md = README1_0.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AssemblyExamples", "AssemblyExamples", "{C219D904-BFBF-4E68-8126-0DFCFD7081A6}"
