@@ -21,11 +21,12 @@
 #define IO_BLUE "\033[34m"
 #define IO_MAGENTA "\033[35m"
 #define IO_CYAN "\033[36m"
+#define IO_GRAY "\033[90m"
 
-#define IO_ERR IO_RED
-#define IO_WARN IO_YELLOW
+#define IO_ERR IO_RED "[ERROR] "
+#define IO_WARN IO_YELLOW "[WARNING] "
 #define IO_OK IO_GREEN
-#define IO_DEBUG IO_CYAN
+#define IO_DEBUG IO_CYAN "[DEBUG] "
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // String Matching

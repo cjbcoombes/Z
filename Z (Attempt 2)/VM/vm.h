@@ -6,8 +6,8 @@
 namespace vm {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Flags
-	const int FLAG_DEBUG = 1;
-	const int FLAG_PROFILE = 2;
+	constexpr int FLAG_DEBUG = 1;
+	constexpr int FLAG_PROFILE = 2;
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Types
@@ -18,6 +18,9 @@ namespace vm {
 		typedef int8_t byte_t;
 		// 16-bit short: address offsets
 		typedef int16_t short_t;
+
+		// Opcode ID: byte
+		typedef uint8_t opcode_t;
 
 		union Value {
 			word_t word;
@@ -34,9 +37,41 @@ namespace vm {
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Assembler
-	
+
+	namespace assembler {
+		class AssemblerException : public std::exception {
+		public:
+			enum ErrorType {
+				STRING_TOO_LONG
+			};
+
+			static constexpr const char* const errorStrings[] = {
+				"String too long"
+			};
+
+			const ErrorType eType;
+			const int line;
+			const int column;
+
+			AssemblerException(ErrorType eTypeIn, int lineIn, int columnIn) : eType(eTypeIn), line(lineIn), column(columnIn) {}
+
+
+			virtual const char* what() const {
+				return errorStrings[eType];
+			}
+		};
+
+		constexpr int MAX_STR_SIZE = 256;
+
+		
+		int assemble(const char* const assemblyPath, const char* const outputPath, Flags assemblyFlags);
+		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags assemblyFlags);
+	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Executor
-	
+	namespace executor {
+		int exec(const char* const path, Flags execFlags);
+		int exec_(std::iostream file, Flags execFlags);
+	}
 }

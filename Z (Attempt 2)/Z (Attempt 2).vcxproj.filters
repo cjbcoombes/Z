@@ -18,6 +18,12 @@
     <ClCompile Include="utils.cpp">
       <Filter>Main</Filter>
     </ClCompile>
+    <ClCompile Include="VM\assembler.cpp">
+      <Filter>VM</Filter>
+    </ClCompile>
+    <ClCompile Include="VM\executor.cpp">
+      <Filter>VM</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VM\vm.h">

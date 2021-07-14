@@ -21,6 +21,8 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="VM\assembler.cpp" />
+    <ClCompile Include="VM\executor.cpp" />
     <ClCompile Include="VM\vm.cpp" />
   </ItemGroup>
   <ItemGroup>
