@@ -1,9 +1,13 @@
 #include "vm.h"
 
+#include <unordered_map>
+
 using vm::assembler::AssemblerException;
 using std::cout;
 
-int vm::assembler::assemble(const char* const assemblyPath, const char* const outputPath, Flags assemblyFlags) {
+#define ASM_DEBUG(thing) if (isDebug) stream << IO_DEBUG << thing << IO_NORM "\n"
+
+int vm::assembler::assemble(const char* const& assemblyPath, const char* const& outputPath, Flags& assemblyFlags) {
 	cout << "Attempting to assemble file \"" << assemblyPath << "\" into output file \"" << outputPath << "\"\n";
 
 	std::fstream assemblyFile, outputFile;
@@ -21,7 +25,7 @@ int vm::assembler::assemble(const char* const assemblyPath, const char* const ou
 	}
 
 	try {
-		return vm::assembler::assemble_(assemblyFile, outputFile, assemblyFlags);
+		return vm::assembler::assemble_(assemblyFile, outputFile, assemblyFlags, std::cout);
 	} catch (AssemblerException& e) {
 		cout << IO_ERR "Error during assembly at LINE " << e.line << ", COLUMN " << e.column << ": " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {
@@ -31,7 +35,7 @@ int vm::assembler::assemble(const char* const assemblyPath, const char* const ou
 	return 1;
 }
 
-int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags assemblyFlags) {
+int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags& assemblyFlags, std::ostream& stream) {
 	using namespace vm::opcode;
 	using namespace vm::types;
 	
@@ -51,7 +55,10 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	bool isParen = false;
 
 	//
-	
+
+	//std::unordered_map<std::string, 
+
+	int carg = 0;
 	opcode_t opcode = NOP;
 	
 
@@ -59,6 +66,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 	while (!end) {
 		assemblyFile.get(c);
+		std::cout << c << '\n';
 		if (c == '\n') {
 			line++;
 			column = 0;
@@ -88,7 +96,46 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		}
 
 		if (c == ' ' || c == ',' || c == '\n' || c == '\t') {
-			// Process the string
+			if (strlen == 0) continue;
+			str[strlen++] = '\0';
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+			if (opcode == NOP) {
+				if (str[0] == '@') {
+					// Process label
+				}
+				
+				opcode = stringMatchAt(str, vm::opcode::strings, vm::opcode::count);
+				carg = 0;
+				ASM_DEBUG("Opcode: " << static_cast<int>(opcode));
+				
+			} else {
+				switch (args[opcode][carg]) {
+					case 0: // ARG_NONE
+						carg = MAX_ARGS;
+						break;
+
+					case 1: // ARG_REG
+						break;
+					
+					case 2: // ARG_WORD
+						break;
+					
+					case 3: // ARG_BYTE
+						break;
+					
+					case 4: // ARG_SHORT
+						break;
+				}
+
+				if (carg >= MAX_ARGS) {
+					opcode = NOP;
+				}
+			}
+
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+			
 			strlen = 0;
 			continue;
 		}
@@ -99,5 +146,10 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		str[strlen++] = c;
 	}
 
+	return 0;
+}
+
+
+vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strlen) {
 	return 0;
 }

@@ -31,9 +31,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // String Matching
 
-bool stringMatch(const char* const match, const char* const strings[], int len);
+bool stringMatch(const char* const& match, const char* const strings[], const int& len);
 
-int stringMatchAt(const char* const match, const char* const strings[], int len);
+int stringMatchAt(const char* const& match, const char* const strings[], const int& len);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Flags Struct
@@ -42,11 +42,11 @@ struct Flags {
 	int bits;
 	
 	Flags();
-	Flags(int bitsIn);
+	Flags(const int& bitsIn);
 
 	// TODO: Implement these
-	bool hasFlags(int flags);
-	void setFlags(int flags);
-	void unsetFlags(int flags);
-	void toggleFlags(int flags);
+	bool hasFlags(const int& flags);
+	void setFlags(const int& flags);
+	void unsetFlags(const int& flags);
+	void toggleFlags(const int& flags);
 };

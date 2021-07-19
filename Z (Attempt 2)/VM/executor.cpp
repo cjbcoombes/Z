@@ -2,7 +2,7 @@
 
 using std::cout;
 
-int vm::executor::exec(const char* const path, Flags execFlags) {
+int vm::executor::exec(const char* const& path, Flags& execFlags) {
 	cout << "Attempting to execute file \"" << path << "\"\n";
 
 	std::fstream file;

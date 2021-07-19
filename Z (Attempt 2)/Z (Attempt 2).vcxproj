@@ -29,6 +29,7 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="VM\opcode.h" />
+    <ClInclude Include="VM\register.h" />
     <ClInclude Include="VM\vm.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

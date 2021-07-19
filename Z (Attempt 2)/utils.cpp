@@ -3,7 +3,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // String Matching
 
-bool stringMatch(const char* const match, const char* const strings[], int len) {
+bool stringMatch(const char* const& match, const char* const strings[], const int& len) {
 	int i = 0;
 	int j = 0;
 	
@@ -19,7 +19,7 @@ bool stringMatch(const char* const match, const char* const strings[], int len) 
 	return false;
 }
 
-int stringMatchAt(const char* const match, const char* const strings[], int len) {
+int stringMatchAt(const char* const& match, const char* const strings[], const int& len) {
 	int i = 0;
 	int j = 0;
 
@@ -39,20 +39,20 @@ int stringMatchAt(const char* const match, const char* const strings[], int len)
 // Flags Struct
 
 Flags::Flags() : bits(0) {}
-Flags::Flags(int bitsIn) : bits(bitsIn) {}
+Flags::Flags(const int& bitsIn) : bits(bitsIn) {}
 
-bool Flags::hasFlags(int flags) {
+bool Flags::hasFlags(const int& flags) {
 	return (bits & flags) == flags;
 }
 
-void Flags::setFlags(int flags) {
+void Flags::setFlags(const int& flags) {
 	bits |= flags;
 }
 
-void Flags::unsetFlags(int flags) {
+void Flags::unsetFlags(const int& flags) {
 	bits &= ~flags;
 }
 
-void Flags::toggleFlags(int flags) {
+void Flags::toggleFlags(const int& flags) {
 	bits ^= flags;
 }

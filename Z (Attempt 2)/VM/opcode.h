@@ -78,6 +78,8 @@ namespace vm {
 			"imod"
 		};
 
+		constexpr int count = sizeof(strings) / sizeof(strings[0]);
+
 		constexpr int MAX_ARGS = 3;
 		enum class ArgType {
 			ARG_NONE,	// 0
