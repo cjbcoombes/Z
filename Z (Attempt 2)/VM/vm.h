@@ -49,11 +49,19 @@ namespace vm {
 		class AssemblerException : public std::exception {
 		public:
 			enum ErrorType {
-				STRING_TOO_LONG
+				STRING_TOO_LONG,
+				INVALID_REG_PARSE,
+				INVALID_WORD_PARSE,
+				INVALID_BYTE_PARSE,
+				INVALID_SHORT_PARSE
 			};
 
 			static constexpr const char* const errorStrings[] = {
-				"String too long"
+				"String too long",
+				"Invalid register during parsing",
+				"Invalid word during parsing",
+				"Invalid byte during parsing",
+				"Invalid short during parsing",
 			};
 
 			const ErrorType eType;
@@ -74,7 +82,18 @@ namespace vm {
 		int assemble(const char* const& assemblyPath, const char* const& outputPath, Flags& assemblyFlags);
 		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags& assemblyFlags, std::ostream& stream);
 
-		types::reg_t parseRegister(char* const& str, const int& strlen);
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// Parsing
+
+		types::reg_t parseRegister(char* const& str, const int& strlen, const int& line, const int& column);
+		template<typename T, AssemblerException::ErrorType eType>
+		T parseNumber(char* const& str, int strlen, const int& line, const int& column);
+		
+		// Declare for number types
+		template types::reg_t parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(char* const&, int, const int&, const int&);
+		template types::word_t parseNumber<types::word_t, AssemblerException::INVALID_WORD_PARSE>(char* const&, int, const int&, const int&);
+		template types::byte_t parseNumber<types::byte_t, AssemblerException::INVALID_WORD_PARSE>(char* const&, int, const int&, const int&);
+		template types::short_t parseNumber<types::short_t, AssemblerException::INVALID_WORD_PARSE>(char* const&, int, const int&, const int&);
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
