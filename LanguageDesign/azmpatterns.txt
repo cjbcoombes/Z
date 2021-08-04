@@ -1,0 +1,24 @@
+THIS DOESN'T DO ANYTHING YET, JUST A CONCEPT
+
+.size reg 1
+.size byte 1
+.size short 2
+.size word 4
+
+.val reg
+	bp: b0,
+	gp: b1,
+	r0: b1,
+	r1: b10,
+	r2: b11,
+	r3: b100,
+	r4: b101,
+	r5: b110
+
+.valset byte number
+.valset short number
+.valset word number
+
+.def add <reg:tgt> <reg:A> <reg:B>
+	-> `add` tgt a b
+	

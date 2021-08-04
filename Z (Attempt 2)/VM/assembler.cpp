@@ -6,6 +6,7 @@ using vm::assembler::AssemblerException;
 using std::cout;
 
 #define ASM_DEBUG(thing) if (isDebug) stream << IO_DEBUG << thing << IO_NORM "\n"
+#define ASM_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
 
 int vm::assembler::assemble(const char* const& assemblyPath, const char* const& outputPath, Flags& assemblyFlags) {
 	cout << "Attempting to assemble file \"" << assemblyPath << "\" into output file \"" << outputPath << "\"\n";
@@ -43,6 +44,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 	assemblyFile.seekg(0);
 	outputFile.seekp(0);
+	int byteCounter = 0;
 
 	char str[vm::assembler::MAX_STR_SIZE];
 	int strlen = 0;
@@ -61,6 +63,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	int carg = 0;
 	opcode_t opcode = NOP;
 
+	reg_t reg = 0;
 	word_t word = 0;
 	byte_t byte = 0;
 	short_t short_ = 0;
@@ -69,7 +72,6 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 	while (!end) {
 		assemblyFile.get(c);
-		std::cout << c << '\n';
 		if (c == '\n') {
 			line++;
 			column = 0;
@@ -77,6 +79,8 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			column++;
 		}
 		if (assemblyFile.eof()) end = true;
+
+		//
 
 		if (isComment) {
 			if (c == '\n') isComment = false;
@@ -98,54 +102,64 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			continue;
 		}
 
+		//
+
 		if (c == ' ' || c == ',' || c == '\n' || c == '\t') {
 			if (strlen == 0) continue;
-			str[strlen++] = '\0';
+			str[strlen] = '\0';
+			ASM_DEBUG(str);
 
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 			if (opcode == NOP) {
 				if (str[0] == '@') {
-					// Process label
+					// TODO: Process label
 				}
 
-				opcode = stringMatchAt(str, vm::opcode::strings, vm::opcode::count);
+				opcode = stringMatchAt(str, strings, count);
+				if (opcode == INVALID) { // opcode == 255, meaning stringMatchAt returned -1
+					throw AssemblerException(AssemblerException::INVALID_OPCODE_PARSE, line, column);
+				}
+				ASM_WRITE(opcode, opcode_t);
 				carg = 0;
 				ASM_DEBUG("Opcode: " << static_cast<int>(opcode));
 
 			} else {
 				switch (args[opcode][carg]) {
 					case 0: // ARG_NONE
+						// THIS SHOULD NEVER BE CALLED
 						carg = MAX_ARGS;
 						break;
 
 					case 1: // ARG_REG
+						reg = parseRegister(str, strlen, line, column);
+						ASM_WRITE(reg, reg_t);
 						break;
 
 					case 2: // ARG_WORD
 						// TODO : Parse labels
 						word = parseNumber<word_t, AssemblerException::INVALID_WORD_PARSE>(str, strlen, line, column);
-						outputFile.write(TO_CH_PT(word), sizeof(word_t));
+						ASM_WRITE(word, word_t);
 						break;
 
 					case 3: // ARG_BYTE
 						byte = parseNumber<byte_t, AssemblerException::INVALID_BYTE_PARSE>(str, strlen, line, column);
-						outputFile.write(TO_CH_PT(byte), sizeof(byte_t));
+						ASM_WRITE(byte, byte_t);
 						break;
 
 					case 4: // ARG_SHORT
 						short_ = parseNumber<short_t, AssemblerException::INVALID_SHORT_PARSE>(str, strlen, line, column);
-						outputFile.write(TO_CH_PT(short_), sizeof(short_t));
+						ASM_WRITE(short_, short_t);
 						break;
 				}
 
-				if (carg >= MAX_ARGS) {
+				carg++;
+				if (carg >= MAX_ARGS || args[opcode][carg] == 0) {
 					opcode = NOP;
 				}
 			}
 
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 			strlen = 0;
 			continue;
 		}
@@ -176,10 +190,10 @@ vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strle
 			throw AssemblerException(AssemblerException::INVALID_REG_PARSE, line, column);
 		}
 
-		return out;
+		return out + register_::R0;
 	}
 
-	return 0;
+	throw AssemblerException(AssemblerException::INVALID_REG_PARSE, line, column);
 }
 
 template<typename T, vm::assembler::AssemblerException::ErrorType eType>
@@ -210,7 +224,9 @@ T vm::assembler::parseNumber(char* const& str, int strlen, const int& line, cons
 	for (int i = 0; i < strlen - 1; i++) {
 		char c = str[strlen - 2 - i];
 
-		if ('0' <= c && c <= '9') {
+		if (strlen - 2 - i == 0 && c == '-') {
+			out *= -1;
+		} else if ('0' <= c && c <= '9') {
 			if (c - '0' >= base) throw AssemblerException(eType, line, column);
 			out += place * (c - '0');
 		} else if ('A' <= c && c <= 'Z') {

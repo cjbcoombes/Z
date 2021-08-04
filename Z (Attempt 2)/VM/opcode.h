@@ -37,6 +37,11 @@ namespace vm {
 			I_MUL,
 			I_DIV,
 			I_MOD,
+			//
+
+
+
+			INVALID = 255
 		};
 
 		constexpr const char* const strings[] = {

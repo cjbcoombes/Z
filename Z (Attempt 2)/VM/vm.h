@@ -22,7 +22,7 @@ namespace vm {
 
 		// Opcode ID: byte
 		typedef uint8_t opcode_t;
-		// Register ID: bute
+		// Register ID: byte
 		typedef uint8_t reg_t;
 
 		union Value {
@@ -50,6 +50,7 @@ namespace vm {
 		public:
 			enum ErrorType {
 				STRING_TOO_LONG,
+				INVALID_OPCODE_PARSE,
 				INVALID_REG_PARSE,
 				INVALID_WORD_PARSE,
 				INVALID_BYTE_PARSE,
@@ -58,6 +59,7 @@ namespace vm {
 
 			static constexpr const char* const errorStrings[] = {
 				"String too long",
+				"Invalid opcode during parsing",
 				"Invalid register during parsing",
 				"Invalid word during parsing",
 				"Invalid byte during parsing",
