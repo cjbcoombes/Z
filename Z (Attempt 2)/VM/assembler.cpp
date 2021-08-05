@@ -1,5 +1,6 @@
 #include "vm.h"
 
+#include <ios>
 #include <unordered_map>
 
 using vm::assembler::AssemblerException;
@@ -42,10 +43,12 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 	const bool isDebug = assemblyFlags.hasFlags(vm::FLAG_DEBUG);
 
-	assemblyFile.seekg(0);
-	outputFile.seekp(0);
+	assemblyFile.seekg(0, std::ios::beg);
+	outputFile.seekp(0, std::ios::beg);
+	const std::streampos assemblyFileBeg = assemblyFile.tellg();
+	const std::streampos outputFileBeg = outputFile.tellp();
 	int byteCounter = 0;
-
+	
 	char str[vm::assembler::MAX_STR_SIZE];
 	int strlen = 0;
 	char c;
@@ -57,8 +60,20 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	bool isParen = false;
 
 	//
+	struct Label {
+		vm::types::word_t val;
+		std::vector<std::streampos> refs;
 
-	//std::unordered_map<std::string, 
+		Label() : val(-1) {}
+		Label(vm::types::word_t valIn) : val(valIn) {}
+	};
+	std::unordered_map<std::string, Label> labels;
+	std::string startstr = "@__START__";
+	labels[startstr] = Label(0);
+	labels[startstr].refs.push_back(outputFileBeg + static_cast<std::streamoff>(format::FIRST_INSTR_ADDR_LOCATION));
+	word_t wordPlaceholder = 0xbcbcbcbc;
+
+	std::string stdstr;
 
 	int carg = 0;
 	opcode_t opcode = NOP;
@@ -113,7 +128,12 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 			if (opcode == NOP) {
 				if (str[0] == '@') {
-					// TODO: Process label
+					stdstr = str;
+					if (labels.find(stdstr) == labels.end()) {
+						labels[stdstr] = Label(byteCounter);
+					} else {
+						labels[stdstr].val = byteCounter;
+					}
 				}
 
 				opcode = stringMatchAt(str, strings, count);
@@ -137,9 +157,17 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 						break;
 
 					case 2: // ARG_WORD
-						// TODO : Parse labels
-						word = parseNumber<word_t, AssemblerException::INVALID_WORD_PARSE>(str, strlen, line, column);
-						ASM_WRITE(word, word_t);
+						if (str[0] == '@') {
+							stdstr = str;
+							if (labels.find(stdstr) == labels.end()) {
+								labels[stdstr] = Label();
+							}
+							labels[stdstr].refs.push_back(outputFile.tellp());
+							ASM_WRITE(wordPlaceholder, word_t);
+						} else {
+							word = parseNumber<word_t, AssemblerException::INVALID_WORD_PARSE>(str, strlen, line, column);
+							ASM_WRITE(word, word_t);
+						}
 						break;
 
 					case 3: // ARG_BYTE

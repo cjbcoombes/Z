@@ -80,6 +80,11 @@ namespace vm {
 
 		constexpr int MAX_STR_SIZE = 256;
 
+		namespace format {
+			constexpr int STACK_SIZE_LOCATION = 0;
+			constexpr int FIRST_INSTR_ADDR_LOCATION = 4;
+			constexpr int GLOBAL_TABLE_LOCATION = 8;
+		}
 
 		int assemble(const char* const& assemblyPath, const char* const& outputPath, Flags& assemblyFlags);
 		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags& assemblyFlags, std::ostream& stream);
