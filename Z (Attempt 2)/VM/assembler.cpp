@@ -48,12 +48,12 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	const std::streampos assemblyFileBeg = assemblyFile.tellg();
 	const std::streampos outputFileBeg = outputFile.tellp();
 	int byteCounter = 0;
-	
+
 	char str[vm::assembler::MAX_STR_SIZE];
 	int strlen = 0;
-	char c;
+	char c = -1;
 	int line = 0;
-	int column = 0;
+	int column = -1;
 
 	bool end = false;
 	bool isComment = false;
@@ -61,16 +61,24 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 	//
 	struct Label {
-		vm::types::word_t val;
-		std::vector<std::streampos> refs;
+		struct Ref {
+			const std::streampos pos;
+			const int line;
+			const int column;
 
-		Label() : val(-1) {}
-		Label(vm::types::word_t valIn) : val(valIn) {}
+			Ref(std::streampos posIn, int lineIn, int columnIn) : pos(posIn), line(lineIn), column(columnIn) {}
+		};
+		vm::types::word_t val;
+		std::vector<Ref> refs;
+		bool isDef;
+
+		Label() : val(0), isDef(false) {}
+		Label(vm::types::word_t valIn) : val(valIn), isDef(true) {}
 	};
 	std::unordered_map<std::string, Label> labels;
 	std::string startstr = "@__START__";
-	labels[startstr] = Label(0);
-	labels[startstr].refs.push_back(outputFileBeg + static_cast<std::streamoff>(format::FIRST_INSTR_ADDR_LOCATION));
+	labels[startstr].val = 0; // TODO : set this later, to point after global data
+	labels[startstr].refs.push_back(Label::Ref(outputFileBeg + static_cast<std::streamoff>(format::FIRST_INSTR_ADDR_LOCATION), -1, -1));
 	word_t wordPlaceholder = 0xbcbcbcbc;
 
 	std::string stdstr;
@@ -86,13 +94,13 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	//
 
 	while (!end) {
-		assemblyFile.get(c);
 		if (c == '\n') {
 			line++;
 			column = 0;
 		} else {
 			column++;
 		}
+		assemblyFile.get(c);
 		if (assemblyFile.eof()) end = true;
 
 		//
@@ -129,11 +137,8 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			if (opcode == NOP) {
 				if (str[0] == '@') {
 					stdstr = str;
-					if (labels.find(stdstr) == labels.end()) {
-						labels[stdstr] = Label(byteCounter);
-					} else {
-						labels[stdstr].val = byteCounter;
-					}
+					labels[stdstr].val = byteCounter;
+					labels[stdstr].isDef = true;
 				}
 
 				opcode = stringMatchAt(str, strings, count);
@@ -159,12 +164,10 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 					case 2: // ARG_WORD
 						if (str[0] == '@') {
 							stdstr = str;
-							if (labels.find(stdstr) == labels.end()) {
-								labels[stdstr] = Label();
-							}
-							labels[stdstr].refs.push_back(outputFile.tellp());
+							labels[stdstr].refs.push_back(Label::Ref(outputFile.tellp(), line, column));
 							ASM_WRITE(wordPlaceholder, word_t);
 						} else {
+							// TODO : printed wrong line/column?
 							word = parseNumber<word_t, AssemblerException::INVALID_WORD_PARSE>(str, strlen, line, column);
 							ASM_WRITE(word, word_t);
 						}
@@ -198,6 +201,17 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		str[strlen++] = c;
 	}
 
+	for (const std::pair<std::string, Label>& pair : labels) {
+		if (pair.second.isDef) {
+			for (const Label::Ref& ref : pair.second.refs) {
+				outputFile.seekp(ref.pos);
+				outputFile.write(reinterpret_cast<char*>(const_cast<word_t*>(&pair.second.val)), sizeof(word_t));
+			}
+		} else {
+			throw AssemblerException(AssemblerException::UNDEFINED_LABEL, pair.second.refs[0].line, pair.second.refs[0].column, pair.first);
+		}
+	}
+
 	return 0;
 }
 
@@ -226,6 +240,7 @@ vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strle
 
 template<typename T, vm::assembler::AssemblerException::ErrorType eType>
 T vm::assembler::parseNumber(char* const& str, int strlen, const int& line, const int& column) {
+	// TODO : Rewrite to use normal hex conventions, not stupud 01x stuff. Why was that a good idea?
 	char t = str[strlen - 1];
 	T base = 10;
 

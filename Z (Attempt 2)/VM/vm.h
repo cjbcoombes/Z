@@ -54,7 +54,8 @@ namespace vm {
 				INVALID_REG_PARSE,
 				INVALID_WORD_PARSE,
 				INVALID_BYTE_PARSE,
-				INVALID_SHORT_PARSE
+				INVALID_SHORT_PARSE,
+				UNDEFINED_LABEL
 			};
 
 			static constexpr const char* const errorStrings[] = {
@@ -64,17 +65,28 @@ namespace vm {
 				"Invalid word during parsing",
 				"Invalid byte during parsing",
 				"Invalid short during parsing",
+				"Undefined label"
 			};
 
 			const ErrorType eType;
 			const int line;
 			const int column;
+			std::string extra;
 
-			AssemblerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn) : eType(eTypeIn), line(lineIn), column(columnIn) {}
+			AssemblerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra("") {}
+			AssemblerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn, char* const& extraIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra(extraIn) {}
+			AssemblerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn, const char* const& extraIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra(extraIn) {}
+			AssemblerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn, const std::string& extraIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra(extraIn) {}
 
 
-			virtual const char* what() const {
-				return errorStrings[eType];
+			virtual const char* what() {
+				if (extra.length() == 0) {
+					return errorStrings[eType];
+				} else {
+					extra.insert(0, " : ");
+					extra.insert(0, errorStrings[eType]);
+					return extra.c_str();
+				}
 			}
 		};
 
