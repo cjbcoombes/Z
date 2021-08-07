@@ -32,6 +32,11 @@
     <ClInclude Include="VM\register.h" />
     <ClInclude Include="VM\vm.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="AssemblyExamples\example1.azm" />
+    <None Include="AssemblyExamples\example1.eze" />
+    <None Include="README.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

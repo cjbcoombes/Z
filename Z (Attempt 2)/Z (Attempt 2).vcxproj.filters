@@ -7,6 +7,9 @@
     <Filter Include="VM">
       <UniqueIdentifier>{f215d964-cbfa-4c55-ac36-107f480e97a5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="AssemblyExamples">
+      <UniqueIdentifier>{2e244fc7-cf2f-4346-b933-58a1fe87c70b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -41,5 +44,14 @@
     <ClInclude Include="VM\register.h">
       <Filter>VM</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+    <None Include="AssemblyExamples\example1.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example1.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -4,7 +4,7 @@ namespace vm {
 			NOP,
 			HALT,
 			// Probably non-permanent:
-			RPRNT,
+			RPRNT_W,
 			//
 			//IF_Z,
 			//IF_NZ,
@@ -50,7 +50,7 @@ namespace vm {
 			"nop",
 			"halt",
 			// 
-			"rprnt",
+			"rprntw",
 			//
 			//"ifz",
 			//"ifnz",
@@ -101,7 +101,7 @@ namespace vm {
 			{0, 0, 0},	// NOP
 			{0, 0, 0},	// HALT
 			//
-			{1, 0, 0}, // RPRNT
+			{1, 0, 0}, // RPRNT_W
 			//
 			//{0, 0, 0},	// IF_Z
 			//{0, 0, 0},	// IF_NZ

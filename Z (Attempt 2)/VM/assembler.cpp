@@ -41,25 +41,31 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	using namespace vm::opcode;
 	using namespace vm::types;
 
+	// Flags/settings
 	const bool isDebug = assemblyFlags.hasFlags(vm::FLAG_DEBUG);
 
+	// File setup
 	assemblyFile.seekg(0, std::ios::beg);
 	outputFile.seekp(0, std::ios::beg);
 	const std::streampos assemblyFileBeg = assemblyFile.tellg();
 	const std::streampos outputFileBeg = outputFile.tellp();
 	int byteCounter = 0;
 
+	// String
 	char str[vm::assembler::MAX_STR_SIZE];
 	int strlen = 0;
 	char c = -1;
 	int line = 0;
 	int column = -1;
 
+	// Booleans
 	bool end = false;
 	bool isComment = false;
 	bool isParen = false;
+	bool isStr = false;
+	bool isEscaped = false;
 
-	//
+	// Labels
 	struct Label {
 		struct Ref {
 			const std::streampos pos;
@@ -80,21 +86,31 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	labels[startstr].isDef = true;
 	labels[startstr].val = format::GLOBAL_TABLE_LOCATION; // TODO : set this later, to point after global data
 	labels[startstr].refs.push_back(Label::Ref(outputFileBeg + static_cast<std::streamoff>(format::FIRST_INSTR_ADDR_LOCATION), -1, -1));
-	word_t wordPlaceholder = 0xbcbcbcbc;
+	word_t labelPlaceholder = wordPlaceholder;
+	word_t labelErr = wordErr;
 
+	// Lonely stdstr
 	std::string stdstr;
 
+	// Arguments, opcodes
 	int carg = 0;
 	opcode_t opcode = NOP;
 
+	// Dummy values
 	reg_t reg = 0;
 	word_t word = 0;
 	byte_t byte = 0;
 	short_t short_ = 0;
 
-	//
+	// Pre-assembly file writing
+	word_t dummy = 0x100;
+	ASM_WRITE(dummy, word_t); // Stack size (set as user-optional?)
+	dummy = labelErr;
+	ASM_WRITE(dummy, word_t); // First instruction addr (to be overwritten later)
 
+	// Da big loop
 	while (!end) {
+		// Update char and file pos
 		if (c == '\n') {
 			line++;
 			column = 0;
@@ -104,31 +120,60 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		assemblyFile.get(c);
 		if (assemblyFile.eof()) end = true;
 
-		//
+		// Dealing with strings and comments
+		if (isStr) {
+			if (isEscaped) {
+				if (c == 'n') {
+					c = '\n';
+				}
 
-		if (isComment) {
-			if (c == '\n') isComment = false;
+				isEscaped = false;
+			} else {
+				if (c == '"') {
+					isStr = false;
+					continue;
+				}
+
+				if (c == '\\') {
+					isEscaped = true;
+					continue;
+				}
+			}
+
+			if (strlen >= MAX_STR_SIZE) {
+				throw AssemblerException(AssemblerException::STRING_TOO_LONG, line, column);
+			}
+			str[strlen++] = c;
 			continue;
+		} else {
+			if (c == '"') {
+				isStr = true;
+				isEscaped = false;
+				continue;
+			}
+
+			if (isComment) {
+				if (c == '\n') isComment = false;
+				continue;
+			}
+
+			if (isParen) {
+				if (c == ')') isParen = false;
+				continue;
+			}
+
+			if (c == ';') {
+				isComment = true;
+				continue;
+			}
+
+			if (c == '(') {
+				isParen = true;
+				continue;
+			}
 		}
 
-		if (isParen) {
-			if (c == ')') isParen = false;
-			continue;
-		}
-
-		if (c == ';') {
-			isComment = true;
-			continue;
-		}
-
-		if (c == '(') {
-			isParen = true;
-			continue;
-		}
-
-		if (isComment || isParen) continue;
-		//
-
+		// At the end of a token:
 		if (c == ' ' || c == ',' || c == '\n' || c == '\t') {
 			if (strlen == 0) continue;
 			str[strlen] = '\0';
@@ -165,10 +210,10 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 						break;
 
 					case 2: // ARG_WORD
-						if (str[0] == '@') {
+						if (str[0] == '@' || str[0] == '%') {
 							stdstr = str;
 							labels[stdstr].refs.push_back(Label::Ref(outputFile.tellp(), line, column));
-							ASM_WRITE(wordPlaceholder, word_t);
+							ASM_WRITE(labelPlaceholder, word_t);
 						} else {
 							// TODO : printed wrong line/column?
 							word = parseNumber<word_t, AssemblerException::INVALID_WORD_PARSE>(str, strlen, line, column);
@@ -194,10 +239,12 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			}
 
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 			strlen = 0;
 			continue;
 		}
 
+		// Add char to string
 		if (strlen >= MAX_STR_SIZE) {
 			throw AssemblerException(AssemblerException::STRING_TOO_LONG, line, column);
 		}

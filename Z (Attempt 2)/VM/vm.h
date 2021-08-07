@@ -35,6 +35,11 @@ namespace vm {
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Constants?
+	constexpr const types::word_t wordPlaceholder = 0xbcbcbcbc;
+	constexpr const types::word_t wordErr = 0xecececec;
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Opcodes: Included in separate header file
 
 

@@ -34,7 +34,28 @@
     <ClInclude Include="VM\vmexecdefs.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AssemblyExamples\example1.azm" />
+    <None Include="AssemblyExamples\example1.eze" />
+    <None Include="AssemblyExamples\example2.azm" />
+    <None Include="AssemblyExamples\example2.eze" />
+    <None Include="AssemblyExamples\example3.azm" />
+    <None Include="AssemblyExamples\example3.eze" />
+    <None Include="AssemblyExamples\example4.azm" />
+    <None Include="AssemblyExamples\example4.eze" />
+    <None Include="AssemblyExamples\example5.azm" />
+    <None Include="AssemblyExamples\example5.eze" />
+    <None Include="AssemblyExamples\example6.azm" />
+    <None Include="AssemblyExamples\example6.eze" />
+    <None Include="AssemblyExamples\example7.azm" />
+    <None Include="AssemblyExamples\example7.eze" />
+    <None Include="AssemblyExamples\fibonacci1.azm" />
+    <None Include="AssemblyExamples\fibonacci1.eze" />
+    <None Include="AssemblyExamples\fibonacci2.azm" />
+    <None Include="AssemblyExamples\fibonacci2.eze" />
+    <None Include="AssemblyExamples\testing1.azm" />
+    <None Include="AssemblyExamples\testing1.eze" />
     <None Include="cpp.hint" />
+    <None Include="README.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

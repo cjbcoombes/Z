@@ -7,8 +7,8 @@ but that vm was created as I was learning how to design it, and as such has some
 that knowledge to streamline the code.
 
 #### Major Changes:
-- The new opcodes `ifz`, `ifnz`, etc. are intended to make any command possibly conditional
 - Conditional operators no longer store the result in a register, but the zero flag can be stored as a boolean using TODO
+
 ## Running It
 Compiles (for me) in Microsoft Visual Studio Community 2019 Version 16.10.2
 
@@ -33,7 +33,7 @@ Nothin' here yet...
 A register-based RISC bytecode
 
 #### AZM File Format
-Anything in parentheses or following a semicolon until a new line is a comment. Ex `(comment)`, `; comment...`
+Anything in parentheses or following a semicolon until a new line is a comment. Ex `(comment...)`, `; comment...`
 Everything else is instructions and their arguments, with tokens separated by whitespace or commas. 
 Anything in double-quotes is treated as a single object (whitespace and commas are not terminators/separators, some escape codes, such as `\"` for ", work).
 Numbers use typical formatting: ### for decimal, 0x### for hex, 0b### for binary, -### for negative numbers. Be careful of overflow.

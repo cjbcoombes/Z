@@ -11,6 +11,9 @@
     <Filter Include="Compiler">
       <UniqueIdentifier>{9db32f00-1d06-43ca-aae2-0969503409bc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="AssemblyExamples">
+      <UniqueIdentifier>{55defd0e-186a-4d61-a2a9-cbc64a19f3c3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -51,5 +54,66 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="README.md" />
+    <None Include="AssemblyExamples\example1.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example1.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example2.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example2.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example3.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example3.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example4.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example4.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example5.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example5.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example6.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example6.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example7.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\example7.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci1.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci1.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci2.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci2.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\testing1.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\testing1.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
   </ItemGroup>
 </Project>
