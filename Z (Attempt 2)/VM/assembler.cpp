@@ -77,7 +77,8 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	};
 	std::unordered_map<std::string, Label> labels;
 	std::string startstr = "@__START__";
-	labels[startstr].val = 0; // TODO : set this later, to point after global data
+	labels[startstr].isDef = true;
+	labels[startstr].val = format::GLOBAL_TABLE_LOCATION; // TODO : set this later, to point after global data
 	labels[startstr].refs.push_back(Label::Ref(outputFileBeg + static_cast<std::streamoff>(format::FIRST_INSTR_ADDR_LOCATION), -1, -1));
 	word_t wordPlaceholder = 0xbcbcbcbc;
 
@@ -125,12 +126,13 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			continue;
 		}
 
+		if (isComment || isParen) continue;
 		//
 
 		if (c == ' ' || c == ',' || c == '\n' || c == '\t') {
 			if (strlen == 0) continue;
 			str[strlen] = '\0';
-			ASM_DEBUG(str);
+			ASM_DEBUG((opcode == NOP ? ":: " : "|  ") << str);
 
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -139,15 +141,16 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 					stdstr = str;
 					labels[stdstr].val = byteCounter;
 					labels[stdstr].isDef = true;
+					ASM_DEBUG("Label Location: " << byteCounter);
+				} else {
+					opcode = stringMatchAt(str, strings, count);
+					if (opcode == INVALID) { // opcode == 255, meaning stringMatchAt returned -1
+						throw AssemblerException(AssemblerException::INVALID_OPCODE_PARSE, line, column);
+					}
+					ASM_WRITE(opcode, opcode_t);
+					carg = 0;
+					ASM_DEBUG("Opcode: " << static_cast<int>(opcode));
 				}
-
-				opcode = stringMatchAt(str, strings, count);
-				if (opcode == INVALID) { // opcode == 255, meaning stringMatchAt returned -1
-					throw AssemblerException(AssemblerException::INVALID_OPCODE_PARSE, line, column);
-				}
-				ASM_WRITE(opcode, opcode_t);
-				carg = 0;
-				ASM_DEBUG("Opcode: " << static_cast<int>(opcode));
 
 			} else {
 				switch (args[opcode][carg]) {
@@ -239,37 +242,45 @@ vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strle
 }
 
 template<typename T, vm::assembler::AssemblerException::ErrorType eType>
-T vm::assembler::parseNumber(char* const& str, int strlen, const int& line, const int& column) {
-	// TODO : Rewrite to use normal hex conventions, not stupud 01x stuff. Why was that a good idea?
-	char t = str[strlen - 1];
+T vm::assembler::parseNumber(const char* str, int strlen, const int& line, const int& column) {
 	T base = 10;
+	T mul = 1;
 
-	switch (t) {
-		case 'x':
-			base = 16;
-			break;
-
-		case 'b':
-			base = 2;
-			break;
-
-		case 'd':break;
-
-		default:
-			if ('0' <= t && t <= '9') {
-				strlen++;
-				break;
-			}
-			throw AssemblerException(eType, line, column);
+	if (str[0] == '-') {
+		str++;
+		strlen--;
+		mul = -1;
 	}
-	// TODO: Negative #s
-	T place = 1, out = 0;
-	for (int i = 0; i < strlen - 1; i++) {
-		char c = str[strlen - 2 - i];
 
-		if (strlen - 2 - i == 0 && c == '-') {
-			out *= -1;
-		} else if ('0' <= c && c <= '9') {
+	if (strlen > 2 && str[0] == '0') {
+		char t = str[1];
+		if (t < '0' || t > '9') {
+			str += 2;
+			strlen -= 2;
+			switch (t) {
+				case 'x':
+					base = 16;
+					break;
+
+				case 'b':
+					base = 2;
+					break;
+
+				case 'd':break;
+
+				default:
+					throw AssemblerException(eType, line, column);
+			}
+		}
+	}
+
+	T place = 1, out = 0;
+	char c;
+	str += strlen - 1;
+	while (strlen > 0) {
+		c = *str;
+
+		if ('0' <= c && c <= '9') {
 			if (c - '0' >= base) throw AssemblerException(eType, line, column);
 			out += place * (c - '0');
 		} else if ('A' <= c && c <= 'Z') {
@@ -278,10 +289,15 @@ T vm::assembler::parseNumber(char* const& str, int strlen, const int& line, cons
 		} else if ('a' <= c && c <= 'z') {
 			if (c - 'a' + 10 >= base) throw AssemblerException(eType, line, column);
 			out += place * (c - 'a' + 10);
+		} else {
+			throw AssemblerException(eType, line, column);
 		}
 
 		place *= base;
+
+		strlen--;
+		str--;
 	}
 
-	return out;
+	return out * mul;
 }

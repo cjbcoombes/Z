@@ -3,9 +3,11 @@ namespace vm {
 		enum Opcode {
 			NOP,
 			HALT,
+			// Probably non-permanent:
+			RPRNT,
 			//
-			IF_Z,
-			IF_NZ,
+			//IF_Z,
+			//IF_NZ,
 			//
 			MOV,
 			MOV_W,
@@ -47,9 +49,11 @@ namespace vm {
 		constexpr const char* const strings[] = {
 			"nop",
 			"halt",
+			// 
+			"rprnt",
 			//
-			"ifz",
-			"ifnz",
+			//"ifz",
+			//"ifnz",
 			//
 			"mov",
 			"movw",
@@ -61,7 +65,7 @@ namespace vm {
 			"loadb",
 			"storeb",
 			"loads",
-			"stores"
+			"stores",
 			//
 			"jmp",
 			//
@@ -97,8 +101,10 @@ namespace vm {
 			{0, 0, 0},	// NOP
 			{0, 0, 0},	// HALT
 			//
-			{0, 0, 0},	// IF_Z
-			{0, 0, 0},	// IF_NZ
+			{1, 0, 0}, // RPRNT
+			//
+			//{0, 0, 0},	// IF_Z
+			//{0, 0, 0},	// IF_NZ
 			//
 			{1, 1, 0},	// MOV
 			{1, 2, 0},	// MOV_W

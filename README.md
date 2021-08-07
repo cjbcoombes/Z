@@ -34,8 +34,9 @@ A register-based RISC bytecode
 
 #### AZM File Format
 Anything in parentheses or following a semicolon until a new line is a comment. Ex `(comment)`, `; comment...`
-Everything else is instructions and their arguments separated by whitespace or commas. 
+Everything else is instructions and their arguments, with tokens separated by whitespace or commas. 
 Anything in double-quotes is treated as a single object (whitespace and commas are not terminators/separators, some escape codes, such as `\"` for ", work).
+Numbers use typical formatting: ### for decimal, 0x### for hex, 0b### for binary, -### for negative numbers. Be careful of overflow.
 See below section **Examples** for examples.
 
 #### EZE File Format
@@ -53,8 +54,7 @@ ID      | Register      | Purpose
 N/A     | IP            | Instruction pointer (not accessible by program)
 0       | BP            | Stack base pointer
 1       | GP            | Pointer to base of globals memory (includes the 4-byte pointer to the program start)
-2       | NR            | Null Register, does nothing
-3 .. 32 | R0 .. R29     | General Purpose
+2 .. 31 | R0 .. R29     | General Purpose
 
 
 ##### Instructions
@@ -120,7 +120,7 @@ The program provides a stack base pointer, BP, and that's it. See example `fibon
 
 ##### Examples
 Note: .azm files should be up-to-date with the bytecode, but .eze files might require regeneration. \
-Another Note: Many of these add a register to 0xFFFFFFFF (decimal -1) to do subtraction. That's because the increment and decrement instructions didn't exist at the time.
+Another Note: Many of these add a register to 0xFFFFFFFF (decimal -1) to do subtraction. That's because the increment and decrement instructions didn't exist at the time, and I'm too lazy to go back and fix them.
 ```
 ; Add 16 and -2 as integers
 movw R0, 0x000000F0 (decimal 16)

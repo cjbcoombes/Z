@@ -106,13 +106,13 @@ namespace vm {
 
 		types::reg_t parseRegister(char* const& str, const int& strlen, const int& line, const int& column);
 		template<typename T, AssemblerException::ErrorType eType>
-		T parseNumber(char* const& str, int strlen, const int& line, const int& column);
+		T parseNumber(const char* str, int strlen, const int& line, const int& column);
 		
 		// Declare for number types
-		template types::reg_t parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(char* const&, int, const int&, const int&);
-		template types::word_t parseNumber<types::word_t, AssemblerException::INVALID_WORD_PARSE>(char* const&, int, const int&, const int&);
-		template types::byte_t parseNumber<types::byte_t, AssemblerException::INVALID_WORD_PARSE>(char* const&, int, const int&, const int&);
-		template types::short_t parseNumber<types::short_t, AssemblerException::INVALID_WORD_PARSE>(char* const&, int, const int&, const int&);
+		template types::reg_t parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(const char*, int, const int&, const int&);
+		template types::word_t parseNumber<types::word_t, AssemblerException::INVALID_WORD_PARSE>(const char*, int, const int&, const int&);
+		template types::byte_t parseNumber<types::byte_t, AssemblerException::INVALID_WORD_PARSE>(const char*, int, const int&, const int&);
+		template types::short_t parseNumber<types::short_t, AssemblerException::INVALID_WORD_PARSE>(const char*, int, const int&, const int&);
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
