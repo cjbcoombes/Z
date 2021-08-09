@@ -64,8 +64,9 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	bool isParen = false;
 	bool isStr = false;
 	bool isEscaped = false;
+	bool isSettingGlobals = true;
 
-	// Labels
+	// Labels and Vars
 	struct Label {
 		struct Ref {
 			const std::streampos pos;
@@ -74,7 +75,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 			Ref(std::streampos posIn, int lineIn, int columnIn) : pos(posIn), line(lineIn), column(columnIn) {}
 		};
-		vm::types::word_t val;
+		word_t val;
 		std::vector<Ref> refs;
 		bool isDef;
 
@@ -177,6 +178,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		if (c == ' ' || c == ',' || c == '\n' || c == '\t') {
 			if (strlen == 0) continue;
 			str[strlen] = '\0';
+			if (opcode == NOP) ASM_DEBUG("");
 			ASM_DEBUG((opcode == NOP ? ":: " : "|  ") << str);
 
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -192,7 +194,20 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 					if (opcode == INVALID) { // opcode == 255, meaning stringMatchAt returned -1
 						throw AssemblerException(AssemblerException::INVALID_OPCODE_PARSE, line, column);
 					}
-					ASM_WRITE(opcode, opcode_t);
+
+					if (isSettingGlobals && opcode < GLOBAL_BREAK) {
+						isSettingGlobals = false;
+						labels[startstr].val = byteCounter;
+					}
+
+					if (!isSettingGlobals) {
+						if (opcode >= GLOBAL_BREAK) {
+							throw AssemblerException(AssemblerException::MISPLACED_GLOBAL, line, column);
+						} else {
+							ASM_WRITE(opcode, opcode_t);
+						}
+					}
+
 					carg = 0;
 					ASM_DEBUG("Opcode: " << static_cast<int>(opcode));
 				}
@@ -230,6 +245,17 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 						short_ = parseNumber<short_t, AssemblerException::INVALID_SHORT_PARSE>(str, strlen, line, column);
 						ASM_WRITE(short_, short_t);
 						break;
+
+					case 5: // ARG_VAR
+						if (str[0] == '%') {
+							stdstr = str;
+							labels[stdstr].val = byteCounter;
+							labels[stdstr].isDef = true;
+							ASM_DEBUG("Var Location: " << byteCounter);
+						} else {
+							throw AssemblerException(AssemblerException::INVALID_VAR_PARSE, line, column);
+						}
+						break;
 				}
 
 				carg++;
@@ -258,7 +284,11 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 				outputFile.write(reinterpret_cast<char*>(const_cast<word_t*>(&pair.second.val)), sizeof(word_t));
 			}
 		} else {
-			throw AssemblerException(AssemblerException::UNDEFINED_LABEL, pair.second.refs[0].line, pair.second.refs[0].column, pair.first);
+			if (pair.first[0] == '@') {
+				throw AssemblerException(AssemblerException::UNDEFINED_LABEL, pair.second.refs[0].line, pair.second.refs[0].column, pair.first);
+			} else {
+				throw AssemblerException(AssemblerException::UNDEFINED_VAR, pair.second.refs[0].line, pair.second.refs[0].column, pair.first);
+			}
 		}
 	}
 
@@ -273,8 +303,8 @@ vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strle
 
 	if (str[0] == 'B' && str[1] == 'P') {
 		return register_::BP;
-	} else if (str[0] == 'G' && str[1] == 'P') {
-		return register_::GP;
+	} else if (str[0] == 'P' && str[1] == 'P') {
+		return register_::PP;
 	} else if (str[0] == 'R') {
 		types::reg_t out = parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(str + 1, strlen - 1, line, column);
 

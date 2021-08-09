@@ -40,11 +40,16 @@ namespace vm {
 			I_DIV,
 			I_MOD,
 			//
-
-
+			//
+			//
+			GLOBAL_W,
+			GLOBAL_B,
+			GLOBAL_S,
 
 			INVALID = 255
 		};
+
+		constexpr int GLOBAL_BREAK = GLOBAL_W;
 
 		constexpr const char* const strings[] = {
 			"nop",
@@ -84,7 +89,13 @@ namespace vm {
 			"isub",
 			"imul",
 			"idiv",
-			"imod"
+			"imod",
+			//
+			//
+			//
+			"globalw",
+			"globalb",
+			"globals"
 		};
 
 		constexpr int count = sizeof(strings) / sizeof(strings[0]);
@@ -96,6 +107,7 @@ namespace vm {
 			ARG_WORD,	// 2 (Also processes labels)
 			ARG_BYTE,	// 3
 			ARG_SHORT,	// 4
+			ARG_VAR		// 5 (Only for setting vars, use ARG_WORD for reading them)
 		};
 		constexpr int args[][MAX_ARGS] = {
 			{0, 0, 0},	// NOP
@@ -111,12 +123,12 @@ namespace vm {
 			{1, 3, 0},	// MOV_B
 			{1, 4, 0},	// MOV_S
 			//			
-			{1, 1, 4},	// LOAD_W
-			{1, 4, 1},	// STORE_W
-			{1, 1, 4},	// LOAD_B
-			{1, 4, 1},	// STORE_B
-			{1, 1, 4},	// LOAD_S
-			{1, 4, 1},	// STORE_S
+			{1, 1, 2},	// LOAD_W
+			{1, 2, 1},	// STORE_W
+			{1, 1, 2},	// LOAD_B
+			{1, 2, 1},	// STORE_B
+			{1, 1, 2},	// LOAD_S
+			{1, 2, 1},	// STORE_S
 			//			
 			{2, 0, 0},	// JMP
 			//
@@ -129,13 +141,19 @@ namespace vm {
 			{1, 1, 0},	// I_CMP_GE
 			{1, 1, 0},	// I_CMP_LE
 			//
-			{1, 0, 0},	// IINC
-			{1, 0, 0},	// IDEC
-			{1, 1, 1},	// IADD
-			{1, 1, 1},	// ISUB
-			{1, 1, 1},	// IMUL
-			{1, 1, 1},	// IDIV
-			{1, 1, 1}	// IMOD
+			{1, 0, 0},	// I_INC
+			{1, 0, 0},	// I_DEC
+			{1, 1, 1},	// I_ADD
+			{1, 1, 1},	// I_SUB
+			{1, 1, 1},	// I_MUL
+			{1, 1, 1},	// I_DIV
+			{1, 1, 1},	// I_MOD
+			//
+			// 
+			//
+			{5, 2, 0},	// GLOBAL_W
+			{5, 3, 0},	// GLOBAL_B
+			{5, 4, 0}	// GLOBAL_S
 		};
 	}
 }

@@ -60,7 +60,10 @@ namespace vm {
 				INVALID_WORD_PARSE,
 				INVALID_BYTE_PARSE,
 				INVALID_SHORT_PARSE,
-				UNDEFINED_LABEL
+				INVALID_VAR_PARSE,
+				UNDEFINED_LABEL,
+				UNDEFINED_VAR,
+				MISPLACED_GLOBAL
 			};
 
 			static constexpr const char* const errorStrings[] = {
@@ -70,7 +73,10 @@ namespace vm {
 				"Invalid word during parsing",
 				"Invalid byte during parsing",
 				"Invalid short during parsing",
-				"Undefined label"
+				"Invalid global variable during parsing",
+				"Undefined label",
+				"Undefined global variable",
+				"Cannot attempt to set global variable after normal program opcodes"
 			};
 
 			const ErrorType eType;

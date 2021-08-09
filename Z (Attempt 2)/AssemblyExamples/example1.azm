@@ -1,10 +1,11 @@
+globalw %THING 0b01101
 movw R0, -0x0000A
 jmp @SKIP
 @SKIPBACK
 iadd R2, R0, R1
 jmp @END
 @SKIP
-movw R1, 0b01101
+movw R1, %THING
 jmp @SKIPBACK
 @END
-rprnt R2
+rprntw R2

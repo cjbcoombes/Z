@@ -4,15 +4,15 @@
   "Items": [
     {
       "Id": "3d4598c8-3a99-41c7-82be-777f607aaa3f",
-      "Command": "-debug -profile -asmandexec \"..\\AssemblyExamples\\example1.azm\" \"..\\AssemblyExamples\\example1.eze\""
+      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\example1.azm\" \".\\AssemblyExamples\\example1.eze\""
     },
     {
       "Id": "a667b501-eaa2-4d97-a13c-7c17d46156c1",
-      "Command": "-debug -assemble \"..\\AssemblyExamples\\fibonacci2.azm\" \"..\\AssemblyExamples\\fibonacci2.eze\" -profile -exec \"..\\AssemblyExamples\\fibonacci2.eze\""
+      "Command": "-debug -assemble \".\\AssemblyExamples\\fibonacci2.azm\" \".\\AssemblyExamples\\fibonacci2.eze\" -profile -exec \".\\AssemblyExamples\\fibonacci2.eze\""
     },
     {
       "Id": "e93abefb-6395-439c-b536-af98ed1b1879",
-      "Command": "-debug -profile -asmandexec \"..\\AssemblyExamples\\testing1.azm\" \"..\\AssemblyExamples\\testing1.eze\""
+      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\testing1.azm\" \".\\AssemblyExamples\\testing1.eze\""
     }
   ]
 }

@@ -4,12 +4,12 @@ namespace vm {
 		// Register | ID		| Desc
 		// -		| IP		| Instruction pointer
 		// 0		| BP		| Stack base pointer
-		// 1		| CP/GP		| Constants/Globals memory pointer
+		// 1		| PP		| Program memory pointer (points to the base of the binary file loaded into memory)
 		// 2 ... 31	| R0 .. 29	| General purpose
 
 		enum {
-			BP,// 0
-			GP,// 1
+			PP,// 0
+			BP,// 1
 			R0 // 2
 		};
 
