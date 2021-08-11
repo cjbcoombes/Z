@@ -101,16 +101,19 @@ namespace vm {
 			}
 		};
 
+		struct AssemblerSettings {
+			Flags flags;
+		};
+
 		constexpr int MAX_STR_SIZE = 256;
 
 		namespace format {
-			constexpr int STACK_SIZE_LOCATION = 0;
-			constexpr int FIRST_INSTR_ADDR_LOCATION = 4;
-			constexpr int GLOBAL_TABLE_LOCATION = 8;
+			constexpr int FIRST_INSTR_ADDR_LOCATION = 0;
+			constexpr int GLOBAL_TABLE_LOCATION = 4;
 		}
 
-		int assemble(const char* const& assemblyPath, const char* const& outputPath, Flags& assemblyFlags);
-		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags& assemblyFlags, std::ostream& stream);
+		int assemble(const char* const& assemblyPath, const char* const& outputPath, AssemblerSettings& assemblerSettings);
+		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream);
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// Parsing
@@ -129,7 +132,44 @@ namespace vm {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Executor
 	namespace executor {
-		int exec(const char* const& path, Flags& execFlags);
-		int exec_(std::iostream& file, Flags& execFlags);
+		class ExecutorException : public std::exception {
+		public:
+			enum ErrorType {
+				TEST
+			};
+
+			static constexpr const char* const errorStrings[] = {
+				"Test"
+			};
+
+			const ErrorType eType;
+			std::string extra;
+
+			ExecutorException(const ErrorType& eTypeIn) : eType(eTypeIn), extra("") {}
+			ExecutorException(const ErrorType& eTypeIn, char* const& extraIn) : eType(eTypeIn), extra(extraIn) {}
+			ExecutorException(const ErrorType& eTypeIn, const char* const& extraIn) : eType(eTypeIn), extra(extraIn) {}
+			ExecutorException(const ErrorType& eTypeIn, const std::string& extraIn) : eType(eTypeIn), extra(extraIn) {}
+
+
+			virtual const char* what() {
+				if (extra.length() == 0) {
+					return errorStrings[eType];
+				} else {
+					extra.insert(0, " : ");
+					extra.insert(0, errorStrings[eType]);
+					return extra.c_str();
+				}
+			}
+		};
+
+		struct ExecutorSettings {
+			Flags flags;
+			unsigned int stackSize;
+
+			ExecutorSettings() : stackSize(0x1000) {}
+		};
+
+		int exec(const char* const& path, ExecutorSettings& execSettings);
+		int exec_(std::iostream& file, ExecutorSettings& execSettings, std::ostream& stream);
 	}
 }

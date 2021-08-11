@@ -9,7 +9,7 @@ using std::cout;
 #define ASM_DEBUG(thing) if (isDebug) stream << IO_DEBUG << thing << IO_NORM "\n"
 #define ASM_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
 
-int vm::assembler::assemble(const char* const& assemblyPath, const char* const& outputPath, Flags& assemblyFlags) {
+int vm::assembler::assemble(const char* const& assemblyPath, const char* const& outputPath, AssemblerSettings& assemblerSettings) {
 	cout << "Attempting to assemble file \"" << assemblyPath << "\" into output file \"" << outputPath << "\"\n";
 
 	std::fstream assemblyFile, outputFile;
@@ -27,7 +27,7 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 	}
 
 	try {
-		return vm::assembler::assemble_(assemblyFile, outputFile, assemblyFlags, std::cout);
+		return vm::assembler::assemble_(assemblyFile, outputFile, assemblerSettings, std::cout);
 	} catch (AssemblerException& e) {
 		cout << IO_ERR "Error during assembly at LINE " << e.line << ", COLUMN " << e.column << ": " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {
@@ -37,12 +37,12 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 	return 1;
 }
 
-int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, Flags& assemblyFlags, std::ostream& stream) {
+int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream) {
 	using namespace vm::opcode;
 	using namespace vm::types;
 
 	// Flags/settings
-	const bool isDebug = assemblyFlags.hasFlags(vm::FLAG_DEBUG);
+	const bool isDebug = assemblerSettings.flags.hasFlags(vm::FLAG_DEBUG);
 
 	// File setup
 	assemblyFile.seekg(0, std::ios::beg);
@@ -104,9 +104,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	short_t short_ = 0;
 
 	// Pre-assembly file writing
-	word_t dummy = 0x100;
-	ASM_WRITE(dummy, word_t); // Stack size (set as user-optional?)
-	dummy = labelErr;
+	word_t dummy = labelErr;
 	ASM_WRITE(dummy, word_t); // First instruction addr (to be overwritten later)
 
 	// Da big loop

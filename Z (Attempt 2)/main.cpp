@@ -13,11 +13,15 @@ int main(int argc, const char* args[]) {
 		"-debug",
 		"-nodebug",
 		"-profile",
-		"-noprofile"
+		"-noprofile",
+		"-stacksize"
 	};
 
-	Flags assemblyFlags;
-	Flags execFlags;
+	vm::assembler::AssemblerSettings assemblerSettings;
+	vm::executor::ExecutorSettings executorSettings;
+
+	// Dummy Variables
+	uint uInt = 0;
 
 	for (int i = 1; i < argc; i++) {
 		switch (stringMatchAt(args[i], commands, ARR_LEN(commands))) {
@@ -30,7 +34,7 @@ int main(int argc, const char* args[]) {
 					cout << IO_ERR "Not enough arguments for assembler" IO_NORM IO_END;
 					return 1;
 				} else {
-					if (vm::assembler::assemble(args[i + 1], args[i + 2], assemblyFlags)) return 1;
+					if (vm::assembler::assemble(args[i + 1], args[i + 2], assemblerSettings)) return 1;
 					i += 2;
 				}
 				break;
@@ -40,7 +44,7 @@ int main(int argc, const char* args[]) {
 					cout << IO_ERR "Not enough arguments for execution" IO_NORM IO_END;
 					return 1;
 				} else {
-					if (vm::executor::exec(args[i + 1], execFlags)) return 1;
+					if (vm::executor::exec(args[i + 1], executorSettings)) return 1;
 					i++;
 				}
 				break;
@@ -50,28 +54,40 @@ int main(int argc, const char* args[]) {
 					cout << IO_ERR "Not enough arguments for assembler and execution" IO_NORM IO_END;
 					return 1;
 				} else {
-					if (vm::assembler::assemble(args[i + 1], args[i + 2], assemblyFlags)) return 1;
-					if (vm::executor::exec(args[i + 2], execFlags)) return 1;
+					if (vm::assembler::assemble(args[i + 1], args[i + 2], assemblerSettings)) return 1;
+					if (vm::executor::exec(args[i + 2], executorSettings)) return 1;
 					i += 2;
 				}
 				break;
 
 			case 3: // -debug
-				assemblyFlags.setFlags(vm::FLAG_DEBUG);
-				execFlags.setFlags(vm::FLAG_DEBUG);
+				assemblerSettings.flags.setFlags(vm::FLAG_DEBUG);
+				executorSettings.flags.setFlags(vm::FLAG_DEBUG);
 				break;
 
 			case 4: // -nodebug
-				assemblyFlags.unsetFlags(vm::FLAG_DEBUG);
-				execFlags.unsetFlags(vm::FLAG_DEBUG);
+				assemblerSettings.flags.unsetFlags(vm::FLAG_DEBUG);
+				executorSettings.flags.unsetFlags(vm::FLAG_DEBUG);
 				break;
 
 			case 5: // -profile
-				execFlags.setFlags(vm::FLAG_PROFILE);
+				executorSettings.flags.setFlags(vm::FLAG_PROFILE);
 				break;
 
 			case 6: // -noprofile
-				execFlags.unsetFlags(vm::FLAG_PROFILE);
+				executorSettings.flags.unsetFlags(vm::FLAG_PROFILE);
+				break;
+
+			case 7: // -stacksize
+				if (argc - i < 2) {
+					cout << IO_ERR "Not enough arguments for setting stack size" IO_NORM IO_END;
+					return 1;
+				} else if (parseUInt(args[i + 1], uInt)) {
+					cout << IO_ERR "Invalid stack size" IO_NORM IO_END;
+					return 1;
+				} else {
+					executorSettings.stackSize = uInt;
+				}
 				break;
 		}
 	}
