@@ -4,7 +4,8 @@ namespace vm {
 			NOP,
 			HALT,
 			// Probably non-permanent:
-			RPRNT_W,
+			R_PRNT_W,
+			LN_PRNT,
 			//
 			//IF_Z,
 			//IF_NZ,
@@ -22,9 +23,10 @@ namespace vm {
 			STORE_S,
 			//
 			JMP,
+			JMP_Z,
+			JMP_NZ,
 			//
 			I_FLAG,
-			I_CMP_ALL,
 			I_CMP_EQ,
 			I_CMP_NE,
 			I_CMP_GT,
@@ -56,6 +58,7 @@ namespace vm {
 			"halt",
 			// 
 			"rprntw",
+			"lnprnt",
 			//
 			//"ifz",
 			//"ifnz",
@@ -73,9 +76,10 @@ namespace vm {
 			"stores",
 			//
 			"jmp",
+			"jmpz",
+			"jmpnz",
 			//
 			"iflag",
-			"icmpall",
 			"icmpeq",
 			"icmpne",
 			"icmpgt",
@@ -113,7 +117,8 @@ namespace vm {
 			{0, 0, 0},	// NOP
 			{0, 0, 0},	// HALT
 			//
-			{1, 0, 0}, // RPRNT_W
+			{1, 0, 0}, // R_PRNT_W
+			{0, 0, 0}, // LN_PRNT
 			//
 			//{0, 0, 0},	// IF_Z
 			//{0, 0, 0},	// IF_NZ
@@ -131,9 +136,10 @@ namespace vm {
 			{1, 2, 1},	// STORE_S
 			//			
 			{2, 0, 0},	// JMP
+			{1, 2, 0},	// JMP_Z
+			{1, 2, 0},	// JMP_NZ
 			//
 			{1, 0, 0},	// I_FLAG
-			{1, 1, 0},	// I_CMP_ALL
 			{1, 1, 0},	// I_CMP_EQ
 			{1, 1, 0},	// I_CMP_NE
 			{1, 1, 0},	// I_CMP_GT

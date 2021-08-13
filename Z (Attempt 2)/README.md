@@ -40,8 +40,7 @@ Numbers use typical formatting: ### for decimal, 0x### for hex, 0b### for binary
 See below section **Examples** for examples.
 
 #### EZE File Format
-Fist 4 bytes: Size of allocated memory for stack \
-Second 4 bytes: Address of first instruction \
+First 4 bytes: Address of first instruction \
 Next (?) bytes: global memory \
 Next (?) bytes: program
 

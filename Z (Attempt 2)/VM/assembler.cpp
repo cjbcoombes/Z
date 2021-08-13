@@ -29,7 +29,7 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 	try {
 		return vm::assembler::assemble_(assemblyFile, outputFile, assemblerSettings, std::cout);
 	} catch (AssemblerException& e) {
-		cout << IO_ERR "Error during assembly at LINE " << e.line << ", COLUMN " << e.column << ": " << e.what() << IO_NORM IO_END;
+		cout << IO_ERR "Error during assembly at LINE " << e.line << ", COLUMN " << e.column << " : " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {
 		cout << IO_ERR "An unknown error ocurred during assembly. This error is most likely an issue with the c++ assembler code, not your code. Sorry. The provided error message is as follows:\n" << e.what() << IO_NORM IO_END;
 	}
@@ -45,7 +45,9 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	const bool isDebug = assemblerSettings.flags.hasFlags(vm::FLAG_DEBUG);
 
 	// File setup
+	assemblyFile.clear();
 	assemblyFile.seekg(0, std::ios::beg);
+	outputFile.clear();
 	outputFile.seekp(0, std::ios::beg);
 	const std::streampos assemblyFileBeg = assemblyFile.tellg();
 	const std::streampos outputFileBeg = outputFile.tellp();
@@ -299,11 +301,10 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strlen, const int& line, const int& column) {
 	if (strlen < 2) throw AssemblerException(AssemblerException::INVALID_REG_PARSE, line, column);
 
-	if (str[0] == 'B' && str[1] == 'P') {
-		return register_::BP;
-	} else if (str[0] == 'P' && str[1] == 'P') {
-		return register_::PP;
-	} else if (str[0] == 'R') {
+	int match = stringMatchAt(str, register_::strings, register_::R0);
+
+	if (match >= 0) return match;
+	else if (str[0] == 'R') {
 		types::reg_t out = parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(str + 1, strlen - 1, line, column);
 
 		if (out >= register_::NUM_GEN_REGISTERS || out < 0) {

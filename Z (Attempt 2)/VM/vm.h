@@ -17,13 +17,19 @@ namespace vm {
 		typedef int32_t word_t;
 		// 8-bit byte: register IDs, opcode IDs, chars
 		typedef int8_t byte_t;
-		// 16-bit short: address offsets
+		// 16-bit short: 
 		typedef int16_t short_t;
 
 		// Opcode ID: byte
 		typedef uint8_t opcode_t;
 		// Register ID: byte
 		typedef uint8_t reg_t;
+
+		// Integer: word
+		typedef int32_t int_t;
+		// Char: byte
+		typedef int8_t char_t;
+
 
 		union Value {
 			word_t word;
@@ -36,8 +42,14 @@ namespace vm {
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Constants?
-	constexpr const types::word_t wordPlaceholder = 0xbcbcbcbc;
-	constexpr const types::word_t wordErr = 0xecececec;
+	constexpr types::word_t wordPlaceholder = 0xbcbcbcbc;
+	constexpr types::word_t wordErr = 0xecececec;
+	constexpr char charFiller = opcode::HALT;
+
+	namespace format {
+		constexpr int FIRST_INSTR_ADDR_LOCATION = 0;
+		constexpr int GLOBAL_TABLE_LOCATION = 4;
+	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Opcodes: Included in separate header file
@@ -107,11 +119,6 @@ namespace vm {
 
 		constexpr int MAX_STR_SIZE = 256;
 
-		namespace format {
-			constexpr int FIRST_INSTR_ADDR_LOCATION = 0;
-			constexpr int GLOBAL_TABLE_LOCATION = 4;
-		}
-
 		int assemble(const char* const& assemblyPath, const char* const& outputPath, AssemblerSettings& assemblerSettings);
 		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream);
 
@@ -135,20 +142,21 @@ namespace vm {
 		class ExecutorException : public std::exception {
 		public:
 			enum ErrorType {
-				TEST
+				UNKNOWN_OPCODE
 			};
 
 			static constexpr const char* const errorStrings[] = {
-				"Test"
+				"Unknown opcode"
 			};
 
 			const ErrorType eType;
+			const int loc;
 			std::string extra;
 
-			ExecutorException(const ErrorType& eTypeIn) : eType(eTypeIn), extra("") {}
-			ExecutorException(const ErrorType& eTypeIn, char* const& extraIn) : eType(eTypeIn), extra(extraIn) {}
-			ExecutorException(const ErrorType& eTypeIn, const char* const& extraIn) : eType(eTypeIn), extra(extraIn) {}
-			ExecutorException(const ErrorType& eTypeIn, const std::string& extraIn) : eType(eTypeIn), extra(extraIn) {}
+			ExecutorException(const ErrorType& eTypeIn, const int& locIn) : eType(eTypeIn), loc(locIn), extra("") {}
+			ExecutorException(const ErrorType& eTypeIn, const int& locIn, char* const& extraIn) : eType(eTypeIn), loc(locIn), extra(extraIn) {}
+			ExecutorException(const ErrorType& eTypeIn, const int& locIn, const char* const& extraIn) : eType(eTypeIn), loc(locIn), extra(extraIn) {}
+			ExecutorException(const ErrorType& eTypeIn, const int& locIn, const std::string& extraIn) : eType(eTypeIn), loc(locIn), extra(extraIn) {}
 
 
 			virtual const char* what() {
@@ -167,6 +175,72 @@ namespace vm {
 			unsigned int stackSize;
 
 			ExecutorSettings() : stackSize(0x1000) {}
+		};
+
+		union Value {
+			types::word_t word;
+			types::byte_t byte;
+			types::short_t short_;
+
+			types::int_t int_;
+			types::char_t char_;
+
+			Value() : word(0) {}
+		};
+
+		class Program {
+			static constexpr int FILLER_SIZE = 24;
+
+		public:
+			char* start;
+			char* ip;
+			char* end;
+
+			Program(std::iostream& program) {
+				// https://stackoverflow.com/questions/22984956/tellg-function-give-wrong-size-of-file
+				program.seekg(0, std::ios::beg);
+				program.ignore(std::numeric_limits<std::streamsize>::max());
+				std::streamsize length = program.gcount();
+
+				start = new char[length + FILLER_SIZE];
+				ip = start;
+				end = start + length + FILLER_SIZE;
+
+				program.clear();
+				program.seekg(0, std::ios::beg);
+				program.read(start, length);
+
+				std::fill(start + length, end, charFiller);
+			}
+
+			~Program() {
+				delete[] start;
+			}
+
+			void goto_(vm::types::word_t loc) {
+				ip = start + loc;
+			}
+
+			template<typename T>
+			void read(T* val) {
+				(*val) = *reinterpret_cast<T*>(ip);
+				ip += sizeof(T);
+			}
+		};
+
+		class Stack {
+		public:
+			char* start;
+			char* end;
+
+			Stack(const int& size) {
+				start = new char[size];
+				end = start + size;
+			}
+
+			~Stack() {
+				delete[] start;
+			}
 		};
 
 		int exec(const char* const& path, ExecutorSettings& execSettings);
