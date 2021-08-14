@@ -47,19 +47,19 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 	int_t int_ = 0;
 	char_t char_ = 0;
 
-	for (; program.ip < program.end; program.ip++) {
-		opcode = *program.ip;
+	while (program.ip < program.end) {
+		program.read<opcode_t>(&opcode);
 		switch (opcode) {
 			case NOP:
 				break;
 
 			case HALT:
-				// TODO: automatic memory cleanup
+				goto end;
 				return 0;
 
 			case R_PRNT_W:
-				program.read<word_t>(&word);
-				stream << "0x" << IO_HEX << word << IO_DEC;
+				program.read<reg_t>(&rid1);
+				stream << reg[rid1].word;
 				break;
 
 			case LN_PRNT:
@@ -72,7 +72,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				reg[rid1] = reg[rid2];
 				break;
 
-			case MOV_W: 
+			case MOV_W:
 				program.read<reg_t>(&rid1);
 				program.read<word_t>(&word);
 				reg[rid1].word = word;
@@ -90,14 +90,14 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				reg[rid1].short_ = short_;
 				break;
 
-			case LOAD_W: 
+			case LOAD_W:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<word_t>(&word);
 				reg[rid1].word = *reinterpret_cast<word_t*>(reg[rid2].word + word);
 				break;
 
-			case STORE_W: 
+			case STORE_W:
 				program.read<reg_t>(&rid1);
 				program.read<word_t>(&word);
 				program.read<reg_t>(&rid2);
@@ -132,13 +132,13 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				*reinterpret_cast<short_t*>(reg[rid1].word + word) = reg[rid2].short_;
 				break;
 
-			case JMP: 
+			case JMP:
 				program.read<word_t>(&word);
 				program.goto_(word);
 				break;
 
-			case JMP_Z: 
-				if (reg[register_::FZ].word) {
+			case JMP_Z:
+				if (reg[register_::FZ].bool_) {
 					program.ip += sizeof(word_t);
 				} else {
 					program.read<word_t>(&word);
@@ -146,8 +146,8 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				}
 				break;
 
-			case JMP_NZ: 
-				if (reg[register_::FZ].word) {
+			case JMP_NZ:
+				if (reg[register_::FZ].bool_) {
 					program.read<word_t>(&word);
 					program.goto_(word);
 				} else {
@@ -155,52 +155,134 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				}
 				break;
 
-			case I_FLAG: 
+			case R_JMP:
 				program.read<reg_t>(&rid1);
-				reg[register_::FZ].word = reg[rid1].int_ == 0 ? 0 : 1;
+				program.goto_(reg[rid1].word);
+				break;
+
+			case R_JMP_Z:
+				if (reg[register_::FZ].bool_ == 0) {
+					program.ip += sizeof(reg_t);
+				} else {
+					program.read<reg_t>(&rid1);
+					program.goto_(reg[rid1].word);
+				}
+				break;
+
+			case R_JMP_NZ:
+				if (reg[register_::FZ].bool_ == 0) {
+					program.read<reg_t>(&rid1);
+					program.goto_(reg[rid1].word);
+				} else {
+					program.ip += sizeof(reg_t);
+				}
+				break;
+
+			case I_FLAG:
+				program.read<reg_t>(&rid1);
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
 				// TODO : Set other flags if they exist?
 				break;
 
-			case I_CMP_EQ: break;
+			case I_CMP_EQ:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].int_ == reg[rid2].int_ ? 1 : 0;
+				break;
 
-			case I_CMP_NE: break;
+			case I_CMP_NE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].int_ != reg[rid2].int_ ? 1 : 0;
+				break;
 
-			case I_CMP_GT: break;
+			case I_CMP_GT:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].int_ > reg[rid2].int_ ? 1 : 0;
+				break;
 
-			case I_CMP_LT: break;
+			case I_CMP_LT:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].int_ < reg[rid2].int_ ? 1 : 0;
+				break;
 
-			case I_CMP_GE: break;
+			case I_CMP_GE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].int_ >= reg[rid2].int_ ? 1 : 0;
+				break;
 
-			case I_CMP_LE: break;
+			case I_CMP_LE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].int_ <= reg[rid2].int_ ? 1 : 0;
+				break;
 
-			case I_INC: break;
+			case I_INC:
+				program.read<reg_t>(&rid1);
+				reg[rid1].int_++;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
-			case I_DEC: break;
+			case I_DEC:
+				program.read<reg_t>(&rid1);
+				reg[rid1].int_--;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
-			case I_ADD: break;
+			case I_ADD:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				reg[rid1].int_ = reg[rid2].int_ + reg[rid3].int_;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
-			case I_SUB: break;
+			case I_SUB:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				reg[rid1].int_ = reg[rid2].int_ - reg[rid3].int_;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
-			case I_MUL: break;
+			case I_MUL:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				reg[rid1].int_ = reg[rid2].int_ * reg[rid3].int_;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
-			case I_DIV: break;
+			case I_DIV:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				if (reg[rid3].int_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				reg[rid1].int_ = reg[rid2].int_ / reg[rid3].int_;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
-			case I_MOD: break;
-
-			case GLOBAL_W: break;
-
-			case GLOBAL_B: break;
-
-			case GLOBAL_S: break;
-
-
-
+			case I_MOD:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				if (reg[rid3].int_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				reg[rid1].int_ = reg[rid2].int_ % reg[rid3].int_;
+				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				break;
 
 			default:
 				throw ExecutorException(ExecutorException::UNKNOWN_OPCODE, program.ip - program.start);
 				break;
 		}
 	}
+
+end:;
+	// TODO: automatic memory cleanup
+	stream << IO_END;
 
 	return 0;
 }

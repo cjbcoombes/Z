@@ -53,5 +53,17 @@
     <None Include="AssemblyExamples\example1.eze">
       <Filter>AssemblyExamples</Filter>
     </None>
+    <None Include="AssemblyExamples\fibonacci_recursive.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci_recursive.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci_fast.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\fibonacci_fast.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
   </ItemGroup>
 </Project>

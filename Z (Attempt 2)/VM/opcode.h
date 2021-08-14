@@ -25,6 +25,9 @@ namespace vm {
 			JMP,
 			JMP_Z,
 			JMP_NZ,
+			R_JMP,
+			R_JMP_Z,
+			R_JMP_NZ,
 			//
 			I_FLAG,
 			I_CMP_EQ,
@@ -78,6 +81,9 @@ namespace vm {
 			"jmp",
 			"jmpz",
 			"jmpnz",
+			"rjmp",
+			"rjmpz",
+			"rjmpnz",
 			//
 			"iflag",
 			"icmpeq",
@@ -134,10 +140,13 @@ namespace vm {
 			{1, 2, 1},	// STORE_B
 			{1, 1, 2},	// LOAD_S
 			{1, 2, 1},	// STORE_S
-			//			
+			//
 			{2, 0, 0},	// JMP
-			{1, 2, 0},	// JMP_Z
-			{1, 2, 0},	// JMP_NZ
+			{2, 0, 0},	// JMP_Z
+			{2, 0, 0},	// JMP_NZ
+			{1, 0, 0},	// R_JMP
+			{1, 0, 0},	// R_JMP_Z
+			{1, 0, 0},	// R_JMP_NZ
 			//
 			{1, 0, 0},	// I_FLAG
 			{1, 1, 0},	// I_CMP_EQ

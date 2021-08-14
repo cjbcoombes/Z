@@ -29,13 +29,8 @@ namespace vm {
 		typedef int32_t int_t;
 		// Char: byte
 		typedef int8_t char_t;
-
-
-		union Value {
-			word_t word;
-			byte_t byte;
-			short_t short_;
-		};
+		// Bool: byte
+		typedef int8_t bool_t;
 
 		static_assert(sizeof(std::intptr_t) == sizeof(word_t), "No workaround for non-word-size (32-bit) pointers");
 	}
@@ -142,11 +137,13 @@ namespace vm {
 		class ExecutorException : public std::exception {
 		public:
 			enum ErrorType {
-				UNKNOWN_OPCODE
+				UNKNOWN_OPCODE,
+				DIVIDE_BY_ZERO
 			};
 
 			static constexpr const char* const errorStrings[] = {
-				"Unknown opcode"
+				"Unknown opcode",
+				"Division (or modulo) by zero"
 			};
 
 			const ErrorType eType;
@@ -184,6 +181,7 @@ namespace vm {
 
 			types::int_t int_;
 			types::char_t char_;
+			types::bool_t bool_;
 
 			Value() : word(0) {}
 		};
@@ -204,13 +202,13 @@ namespace vm {
 
 				start = new char[length + FILLER_SIZE];
 				ip = start;
-				end = start + length + FILLER_SIZE;
+				end = start + length;
 
 				program.clear();
 				program.seekg(0, std::ios::beg);
 				program.read(start, length);
 
-				std::fill(start + length, end, charFiller);
+				std::fill(start + length, start + length + FILLER_SIZE, charFiller);
 			}
 
 			~Program() {

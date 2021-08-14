@@ -175,7 +175,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		}
 
 		// At the end of a token:
-		if (c == ' ' || c == ',' || c == '\n' || c == '\t') {
+		if (c == ' ' || c == ',' || c == '\n' || c == '\t' || end) {
 			if (strlen == 0) continue;
 			str[strlen] = '\0';
 			if (opcode == NOP) ASM_DEBUG("");
@@ -210,6 +210,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 
 					carg = 0;
 					ASM_DEBUG("Opcode: " << static_cast<int>(opcode));
+					if (args[opcode][0] == 0) opcode = NOP;
 				}
 
 			} else {
@@ -277,6 +278,11 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		str[strlen++] = c;
 	}
 
+	/*
+	opcode = HALT;
+	ASM_WRITE(opcode, opcode_t);
+	*/
+
 	for (const std::pair<std::string, Label>& pair : labels) {
 		if (pair.second.isDef) {
 			for (const Label::Ref& ref : pair.second.refs) {
@@ -291,6 +297,8 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			}
 		}
 	}
+
+	ASM_DEBUG(IO_END);
 
 	return 0;
 }

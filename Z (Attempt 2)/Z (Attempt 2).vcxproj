@@ -35,6 +35,10 @@
   <ItemGroup>
     <None Include="AssemblyExamples\example1.azm" />
     <None Include="AssemblyExamples\example1.eze" />
+    <None Include="AssemblyExamples\fibonacci_fast.azm" />
+    <None Include="AssemblyExamples\fibonacci_fast.eze" />
+    <None Include="AssemblyExamples\fibonacci_recursive.azm" />
+    <None Include="AssemblyExamples\fibonacci_recursive.eze" />
     <None Include="README.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
