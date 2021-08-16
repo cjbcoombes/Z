@@ -3,9 +3,17 @@ namespace vm {
 		enum Opcode {
 			NOP,
 			HALT,
+			//
+			ALLOC,
+			FREE,
 			// Probably non-permanent:
 			R_PRNT_W,
-			LN_PRNT,
+			//
+			PRNT_LN,
+			PRNT_C,
+			PRNT_STR,
+			//
+			READ_STR, 
 			//
 			//IF_Z,
 			//IF_NZ,
@@ -44,12 +52,31 @@ namespace vm {
 			I_MUL,
 			I_DIV,
 			I_MOD,
+			I_TO_C,
+			//
+			C_FLAG,
+			C_CMP_EQ,
+			C_CMP_NE,
+			C_CMP_GT,
+			C_CMP_LT,
+			C_CMP_GE,
+			C_CMP_LE,
+			//
+			C_INC,
+			C_DEC,
+			C_ADD,
+			C_SUB,
+			C_MUL,
+			C_DIV,
+			C_MOD,
+			C_TO_I,
 			//
 			//
 			//
 			GLOBAL_W,
 			GLOBAL_B,
 			GLOBAL_S,
+			GLOBAL_STR,
 
 			INVALID = 255
 		};
@@ -59,9 +86,17 @@ namespace vm {
 		constexpr const char* const strings[] = {
 			"nop",
 			"halt",
+			//
+			"alloc",
+			"free",
 			// 
 			"rprntw",
-			"lnprnt",
+			//
+			"prntln",
+			"prntc",
+			"prntstr",
+			//
+			"readstr",
 			//
 			//"ifz",
 			//"ifnz",
@@ -100,12 +135,31 @@ namespace vm {
 			"imul",
 			"idiv",
 			"imod",
+			"itoc",
+			//
+			"cflag",
+			"ccmpeq",
+			"ccmpne",
+			"ccmpgt",
+			"ccmplt",
+			"ccmpge",
+			"ccmple",
+			//
+			"cinc",
+			"cdec",
+			"cadd",
+			"csub",
+			"cmul",
+			"cdiv",
+			"cmod",
+			"ctoi",
 			//
 			//
 			//
 			"globalw",
 			"globalb",
-			"globals"
+			"globals",
+			"globalstr"
 		};
 
 		constexpr int count = sizeof(strings) / sizeof(strings[0]);
@@ -117,14 +171,23 @@ namespace vm {
 			ARG_WORD,	// 2 (Also processes labels)
 			ARG_BYTE,	// 3
 			ARG_SHORT,	// 4
-			ARG_VAR		// 5 (Only for setting vars, use ARG_WORD for reading them)
+			ARG_VAR,	// 5 (Only for setting vars, use ARG_WORD for reading them)
+			ARG_STR		// 6
 		};
 		constexpr int args[][MAX_ARGS] = {
 			{0, 0, 0},	// NOP
 			{0, 0, 0},	// HALT
 			//
-			{1, 0, 0}, // R_PRNT_W
-			{0, 0, 0}, // LN_PRNT
+			{1, 1, 0},	// ALLOC
+			{1, 0, 0},	// FREE
+			//
+			{1, 0, 0},	// R_PRNT_W
+			//
+			{0, 0, 0},	// PRNT_LN
+			{1, 0, 0},	// PRNT_C
+			{1, 2, 0},	// PRNT_STR
+			//
+			{1, 0, 0},	// READ_STR
 			//
 			//{0, 0, 0},	// IF_Z
 			//{0, 0, 0},	// IF_NZ
@@ -163,12 +226,31 @@ namespace vm {
 			{1, 1, 1},	// I_MUL
 			{1, 1, 1},	// I_DIV
 			{1, 1, 1},	// I_MOD
+			{1, 1, 0},	// I_TO_C
+			//
+			{1, 0, 0},	// C_FLAG
+			{1, 1, 0},	// C_CMP_EQ
+			{1, 1, 0},	// C_CMP_NE
+			{1, 1, 0},	// C_CMP_GT
+			{1, 1, 0},	// C_CMP_LT
+			{1, 1, 0},	// C_CMP_GE
+			{1, 1, 0},	// C_CMP_LE
+			//
+			{1, 0, 0},	// C_INC
+			{1, 0, 0},	// C_DEC
+			{1, 1, 1},	// C_ADD
+			{1, 1, 1},	// C_SUB
+			{1, 1, 1},	// C_MUL
+			{1, 1, 1},	// C_DIV
+			{1, 1, 1},	// C_MOD
+			{1, 1, 0},	// C_TO_I
 			//
 			// 
 			//
 			{5, 2, 0},	// GLOBAL_W
 			{5, 3, 0},	// GLOBAL_B
-			{5, 4, 0}	// GLOBAL_S
+			{5, 4, 0},	// GLOBAL_S
+			{5, 6, 0},	// GLOBAL_STR
 		};
 	}
 }

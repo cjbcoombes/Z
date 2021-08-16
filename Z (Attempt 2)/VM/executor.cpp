@@ -13,7 +13,7 @@ int vm::executor::exec(const char* const& path, ExecutorSettings& execSettings) 
 	file.open(path, std::ios::in | std::ios::binary);
 
 	try {
-		return vm::executor::exec_(file, execSettings, std::cout);
+		return vm::executor::exec_(file, execSettings, std::cout, std::cin);
 	} catch (ExecutorException& e) {
 		cout << IO_ERR "Error during execution at BYTE" << e.loc << " : " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {
@@ -23,15 +23,15 @@ int vm::executor::exec(const char* const& path, ExecutorSettings& execSettings) 
 	return 1;
 }
 
-int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std::ostream& stream) {
+int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std::ostream& streamOut, std::istream& streamIn) {
 	using namespace types;
 	using namespace opcode;
 
 	Program program(file);
 	Stack stack(execSettings.stackSize);
 	Value reg[register_::R0 + register_::NUM_GEN_REGISTERS];
-	reg[register_::PP].word = *reinterpret_cast<word_t*>(&program.start);
-	reg[register_::BP].word = *reinterpret_cast<word_t*>(&stack.start);
+	reg[register_::PP].word = reinterpret_cast<word_t>(program.start);
+	reg[register_::BP].word = reinterpret_cast<word_t>(stack.start);
 
 	program.goto_(format::FIRST_INSTR_ADDR_LOCATION);
 	program.goto_(*AS_WORD(program.ip));
@@ -57,13 +57,44 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				goto end;
 				return 0;
 
-			case R_PRNT_W:
+			case ALLOC: // TODO : Careful with the memory!
 				program.read<reg_t>(&rid1);
-				stream << reg[rid1].word;
+				program.read<reg_t>(&rid2);
+				try {
+					reg[rid2].word = reinterpret_cast<word_t>(new char[reg[rid1].word]);
+				} catch (std::bad_alloc& e) {
+					throw ExecutorException(ExecutorException::BAD_ALLOC, program.ip - program.start, e.what());
+				}
 				break;
 
-			case LN_PRNT:
-				stream << '\n';
+			case FREE:
+				program.read<reg_t>(&rid1);
+				delete[] reinterpret_cast<char*>(reg[rid1].word);
+				break;
+
+			case R_PRNT_W:
+				program.read<reg_t>(&rid1);
+				streamOut << reg[rid1].word;
+				break;
+
+			case PRNT_LN:
+				streamOut << '\n';
+				break;
+
+			case PRNT_C:
+				program.read<reg_t>(&rid1);
+				streamOut << reg[rid1].char_;
+				break;
+
+			case PRNT_STR:
+				program.read<reg_t>(&rid1);
+				program.read<word_t>(&word);
+				streamOut << reinterpret_cast<char*>(reg[rid1].word + word);
+				break;
+
+			case READ_STR:
+				program.read<reg_t>(&rid1);
+				
 				break;
 
 			case MOV:
@@ -274,6 +305,114 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
+			case I_TO_C:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[rid1].char_ = static_cast<char_t>(reg[rid2].int_);
+				break;
+
+			case C_FLAG:
+				program.read<reg_t>(&rid1);
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				// TODO : Set other flags if they exist?
+				break;
+
+			case C_CMP_EQ:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].char_ == reg[rid2].char_ ? 1 : 0;
+				break;
+
+			case C_CMP_NE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].char_ != reg[rid2].char_ ? 1 : 0;
+				break;
+
+			case C_CMP_GT:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].char_ > reg[rid2].char_ ? 1 : 0;
+				break;
+
+			case C_CMP_LT:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].char_ < reg[rid2].char_ ? 1 : 0;
+				break;
+
+			case C_CMP_GE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].char_ >= reg[rid2].char_ ? 1 : 0;
+				break;
+
+			case C_CMP_LE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[register_::FZ].bool_ = reg[rid1].char_ <= reg[rid2].char_ ? 1 : 0;
+				break;
+
+			case C_INC:
+				program.read<reg_t>(&rid1);
+				reg[rid1].char_++;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_DEC:
+				program.read<reg_t>(&rid1);
+				reg[rid1].char_--;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_ADD:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				reg[rid1].char_ = reg[rid2].char_ + reg[rid3].char_;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_SUB:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				reg[rid1].char_ = reg[rid2].char_ - reg[rid3].char_;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_MUL:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				reg[rid1].char_ = reg[rid2].char_ * reg[rid3].char_;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_DIV:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				if (reg[rid3].char_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				reg[rid1].char_ = reg[rid2].char_ / reg[rid3].char_;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_MOD:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				if (reg[rid3].char_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				reg[rid1].char_ = reg[rid2].char_ % reg[rid3].char_;
+				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				break;
+
+			case C_TO_I:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				reg[rid1].int_ = static_cast<char_t>(reg[rid2].char_);
+				break;
+
 			default:
 				throw ExecutorException(ExecutorException::UNKNOWN_OPCODE, program.ip - program.start);
 				break;
@@ -282,7 +421,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 
 end:;
 	// TODO: automatic memory cleanup
-	stream << IO_END;
+	streamOut << IO_END;
 
 	return 0;
 }

@@ -7,6 +7,7 @@ using vm::assembler::AssemblerException;
 using std::cout;
 
 #define ASM_DEBUG(thing) if (isDebug) stream << IO_DEBUG << thing << IO_NORM "\n"
+#define ASM_WRITERAW(thing, sz) outputFile.write(thing, sz); byteCounter += sz
 #define ASM_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
 
 int vm::assembler::assemble(const char* const& assemblyPath, const char* const& outputPath, AssemblerSettings& assemblerSettings) {
@@ -256,6 +257,10 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 						} else {
 							throw AssemblerException(AssemblerException::INVALID_VAR_PARSE, line, column);
 						}
+						break;
+
+					case 6: // ARG_STR
+						ASM_WRITERAW(str, strlen + 1);
 						break;
 				}
 

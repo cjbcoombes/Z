@@ -138,12 +138,14 @@ namespace vm {
 		public:
 			enum ErrorType {
 				UNKNOWN_OPCODE,
-				DIVIDE_BY_ZERO
+				DIVIDE_BY_ZERO, 
+				BAD_ALLOC
 			};
 
 			static constexpr const char* const errorStrings[] = {
 				"Unknown opcode",
-				"Division (or modulo) by zero"
+				"Division (or modulo) by zero",
+				"Dynamic memory allocation error"
 			};
 
 			const ErrorType eType;
@@ -242,6 +244,6 @@ namespace vm {
 		};
 
 		int exec(const char* const& path, ExecutorSettings& execSettings);
-		int exec_(std::iostream& file, ExecutorSettings& execSettings, std::ostream& stream);
+		int exec_(std::iostream& file, ExecutorSettings& execSettings, std::ostream& stream, std::istream& streamIn);
 	}
 }
