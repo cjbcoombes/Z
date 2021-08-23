@@ -57,11 +57,15 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				goto end;
 				return 0;
 
+			case BREAK:
+				while (streamIn.get() != '\n');
+				break;
+
 			case ALLOC: // TODO : Careful with the memory!
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				try {
-					reg[rid2].word = reinterpret_cast<word_t>(new char[reg[rid1].word]);
+					reg[rid1].word = reinterpret_cast<word_t>(new char[reg[rid2].word]);
 				} catch (std::bad_alloc& e) {
 					throw ExecutorException(ExecutorException::BAD_ALLOC, program.ip - program.start, e.what());
 				}
@@ -94,7 +98,8 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 
 			case READ_STR:
 				program.read<reg_t>(&rid1);
-				
+				program.read<word_t>(&word);
+				streamIn.getline(reinterpret_cast<char*>(reg[rid1].word + word), std::numeric_limits<std::streamsize>::max(), '\n');
 				break;
 
 			case MOV:

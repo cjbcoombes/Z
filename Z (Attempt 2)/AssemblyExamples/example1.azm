@@ -1,2 +1,14 @@
-globalstr %STR "Test that this works: \"Chris\" is cool?\nOf course!"
-prntstr PP, %STR
+globalstr %S1 "What is your name? "
+globalstr %S2 "Hello "
+globalstr %S3 ", my name is [CENSORED].\nGoodbye!"
+
+
+movw R0, 0x100
+alloc R1, R0
+prntstr PP, %S1
+readstr R1, 0
+prntstr PP, %S2
+prntstr R1, 0
+prntstr PP, %S3
+free R1
+halt

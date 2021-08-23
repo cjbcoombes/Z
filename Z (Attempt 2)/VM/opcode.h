@@ -3,6 +3,7 @@ namespace vm {
 		enum Opcode {
 			NOP,
 			HALT,
+			BREAK,
 			//
 			ALLOC,
 			FREE,
@@ -86,6 +87,7 @@ namespace vm {
 		constexpr const char* const strings[] = {
 			"nop",
 			"halt",
+			"break",
 			//
 			"alloc",
 			"free",
@@ -177,6 +179,7 @@ namespace vm {
 		constexpr int args[][MAX_ARGS] = {
 			{0, 0, 0},	// NOP
 			{0, 0, 0},	// HALT
+			{0, 0, 0},	// BREAK
 			//
 			{1, 1, 0},	// ALLOC
 			{1, 0, 0},	// FREE
@@ -187,7 +190,7 @@ namespace vm {
 			{1, 0, 0},	// PRNT_C
 			{1, 2, 0},	// PRNT_STR
 			//
-			{1, 0, 0},	// READ_STR
+			{1, 2, 0},	// READ_STR
 			//
 			//{0, 0, 0},	// IF_Z
 			//{0, 0, 0},	// IF_NZ
