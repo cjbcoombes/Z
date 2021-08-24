@@ -127,7 +127,11 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 			if (isEscaped) {
 				if (c == 'n') {
 					c = '\n';
+					line--;
+				} else if (c == 'c') {
+					c = '\033';
 				}
+				// nothing on c == '"'
 
 				isEscaped = false;
 			} else {

@@ -65,5 +65,11 @@
     <None Include="AssemblyExamples\fibonacci_fast.eze">
       <Filter>AssemblyExamples</Filter>
     </None>
+    <None Include="AssemblyExamples\simple_user_input.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\simple_user_input.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
   </ItemGroup>
 </Project>

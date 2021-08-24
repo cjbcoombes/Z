@@ -39,6 +39,8 @@
     <None Include="AssemblyExamples\fibonacci_fast.eze" />
     <None Include="AssemblyExamples\fibonacci_recursive.azm" />
     <None Include="AssemblyExamples\fibonacci_recursive.eze" />
+    <None Include="AssemblyExamples\simple_user_input.azm" />
+    <None Include="AssemblyExamples\simple_user_input.eze" />
     <None Include="README.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
