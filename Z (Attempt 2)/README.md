@@ -49,14 +49,14 @@ Next (?) bytes: program
 The bytecode has several general-purpose registers that can hold any word, byte, or short value (including memory addresses).
 There are also several special-purpose registers.
 
-ID      | Register      | Purpose
----     | ---           | ---
-N/A     | IP            | Instruction pointer (not accessible by program)
-0       | PP	    	| Program memory pointer (points to the base of the binary file loaded into memory)
-1       | BP            | Stack base pointer
-2       | FZ	    	| Zero flag register (zero flag is stored in the boolean part)
-3 .. 31 | R0 .. R28     | General Purpose
-
+ID          | Register      | Purpose
+---         | ---           | ---
+N/A         | IP            | Instruction pointer (not accessible by program)
+0           | PP	    	| Program memory pointer (points to the base of the binary file loaded into memory)
+1           | BP            | Stack base pointer
+2           | FZ	    	| Zero flag register (zero flag is stored in the boolean part)
+3 ... 17	| W0 .. 14	    | General purpose word
+18 .. 31	| B0 .. 13  	| General purpose byte
 
 ##### Instructions
 

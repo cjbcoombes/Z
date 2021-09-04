@@ -29,9 +29,11 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 
 	Program program(file);
 	Stack stack(execSettings.stackSize);
-	Value reg[register_::R0 + register_::NUM_GEN_REGISTERS];
-	reg[register_::PP].word = reinterpret_cast<word_t>(program.start);
-	reg[register_::BP].word = reinterpret_cast<word_t>(stack.start);
+	WordVal wordReg[register_::COUNT];
+	ByteVal byteReg[register_::COUNT];
+	wordReg[register_::PP].word = reinterpret_cast<word_t>(program.start);
+	wordReg[register_::BP].word = reinterpret_cast<word_t>(stack.start);
+	byteReg[register_::FZ].bool_ = 0;
 
 	program.goto_(format::FIRST_INSTR_ADDR_LOCATION);
 	program.goto_(*AS_WORD(program.ip));
@@ -43,9 +45,9 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 	reg_t rid3 = 0;
 	word_t word = 0;
 	byte_t byte = 0;
-	short_t short_ = 0;
 	int_t int_ = 0;
 	char_t char_ = 0;
+	char rlchar = 0;
 
 	while (program.ip < program.end) {
 		program.read<opcode_t>(&opcode);
@@ -65,7 +67,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				try {
-					reg[rid1].word = reinterpret_cast<word_t>(new char[reg[rid2].word]);
+					wordReg[rid1].word = reinterpret_cast<word_t>(new char[wordReg[rid2].word]);
 				} catch (std::bad_alloc& e) {
 					throw ExecutorException(ExecutorException::BAD_ALLOC, program.ip - program.start, e.what());
 				}
@@ -73,99 +75,59 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 
 			case FREE:
 				program.read<reg_t>(&rid1);
-				delete[] reinterpret_cast<char*>(reg[rid1].word);
+				delete[] reinterpret_cast<char*>(wordReg[rid1].word);
 				break;
 
-			case R_PRNT_W:
-				program.read<reg_t>(&rid1);
-				streamOut << reg[rid1].word;
-				break;
-
-			case PRNT_LN:
-				streamOut << '\n';
-				break;
-
-			case PRNT_C:
-				program.read<reg_t>(&rid1);
-				streamOut << reg[rid1].char_;
-				break;
-
-			case PRNT_STR:
-				program.read<reg_t>(&rid1);
-				program.read<word_t>(&word);
-				streamOut << reinterpret_cast<char*>(reg[rid1].word + word);
-				break;
-
-			case READ_STR:
-				program.read<reg_t>(&rid1);
-				program.read<word_t>(&word);
-				streamIn.getline(reinterpret_cast<char*>(reg[rid1].word + word), std::numeric_limits<std::streamsize>::max(), '\n');
-				break;
-
-			case MOV:
+			case R_MOV_W:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[rid1] = reg[rid2];
+				wordReg[rid1] = wordReg[rid2];
+				break;
+			
+			case R_MOV_B:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[rid1] = byteReg[rid2];
 				break;
 
 			case MOV_W:
 				program.read<reg_t>(&rid1);
 				program.read<word_t>(&word);
-				reg[rid1].word = word;
+				wordReg[rid1].word = word;
 				break;
 
 			case MOV_B:
 				program.read<reg_t>(&rid1);
 				program.read<byte_t>(&byte);
-				reg[rid1].byte = byte;
-				break;
-
-			case MOV_S:
-				program.read<reg_t>(&rid1);
-				program.read<short_t>(&short_);
-				reg[rid1].short_ = short_;
+				byteReg[rid1].byte = byte;
 				break;
 
 			case LOAD_W:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<word_t>(&word);
-				reg[rid1].word = *reinterpret_cast<word_t*>(reg[rid2].word + word);
+				wordReg[rid1].word = *reinterpret_cast<word_t*>(wordReg[rid2].word + word);
 				break;
 
 			case STORE_W:
 				program.read<reg_t>(&rid1);
 				program.read<word_t>(&word);
 				program.read<reg_t>(&rid2);
-				*reinterpret_cast<word_t*>(reg[rid1].word + word) = reg[rid2].word;
+				*reinterpret_cast<word_t*>(wordReg[rid1].word + word) = wordReg[rid2].word;
 				break;
 
 			case LOAD_B:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<word_t>(&word);
-				reg[rid1].byte = *reinterpret_cast<byte_t*>(reg[rid2].word + word);
+				byteReg[rid1].byte = *reinterpret_cast<byte_t*>(wordReg[rid2].word + word);
 				break;
 
 			case STORE_B:
 				program.read<reg_t>(&rid1);
 				program.read<word_t>(&word);
 				program.read<reg_t>(&rid2);
-				*reinterpret_cast<byte_t*>(reg[rid1].word + word) = reg[rid2].byte;
-				break;
-
-			case LOAD_S:
-				program.read<reg_t>(&rid1);
-				program.read<reg_t>(&rid2);
-				program.read<word_t>(&word);
-				reg[rid1].short_ = *reinterpret_cast<short_t*>(reg[rid2].word + word);
-				break;
-
-			case STORE_S:
-				program.read<reg_t>(&rid1);
-				program.read<word_t>(&word);
-				program.read<reg_t>(&rid2);
-				*reinterpret_cast<short_t*>(reg[rid1].word + word) = reg[rid2].short_;
+				*reinterpret_cast<byte_t*>(wordReg[rid1].word + word) = byteReg[rid2].byte;
 				break;
 
 			case JMP:
@@ -174,7 +136,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				break;
 
 			case JMP_Z:
-				if (reg[register_::FZ].bool_) {
+				if (byteReg[register_::FZ].bool_) {
 					program.ip += sizeof(word_t);
 				} else {
 					program.read<word_t>(&word);
@@ -183,7 +145,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				break;
 
 			case JMP_NZ:
-				if (reg[register_::FZ].bool_) {
+				if (byteReg[register_::FZ].bool_) {
 					program.read<word_t>(&word);
 					program.goto_(word);
 				} else {
@@ -193,22 +155,22 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 
 			case R_JMP:
 				program.read<reg_t>(&rid1);
-				program.goto_(reg[rid1].word);
+				program.goto_(wordReg[rid1].word);
 				break;
 
 			case R_JMP_Z:
-				if (reg[register_::FZ].bool_ == 0) {
+				if (byteReg[register_::FZ].bool_ == 0) {
 					program.ip += sizeof(reg_t);
 				} else {
 					program.read<reg_t>(&rid1);
-					program.goto_(reg[rid1].word);
+					program.goto_(wordReg[rid1].word);
 				}
 				break;
 
 			case R_JMP_NZ:
-				if (reg[register_::FZ].bool_ == 0) {
+				if (byteReg[register_::FZ].bool_ == 0) {
 					program.read<reg_t>(&rid1);
-					program.goto_(reg[rid1].word);
+					program.goto_(wordReg[rid1].word);
 				} else {
 					program.ip += sizeof(reg_t);
 				}
@@ -216,206 +178,238 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 
 			case I_FLAG:
 				program.read<reg_t>(&rid1);
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				// TODO : Set other flags if they exist?
 				break;
 
 			case I_CMP_EQ:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].int_ == reg[rid2].int_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == wordReg[rid2].int_ ? 1 : 0;
 				break;
 
 			case I_CMP_NE:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].int_ != reg[rid2].int_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ != wordReg[rid2].int_ ? 1 : 0;
 				break;
 
 			case I_CMP_GT:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].int_ > reg[rid2].int_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ > wordReg[rid2].int_ ? 1 : 0;
 				break;
 
 			case I_CMP_LT:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].int_ < reg[rid2].int_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ < wordReg[rid2].int_ ? 1 : 0;
 				break;
 
 			case I_CMP_GE:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].int_ >= reg[rid2].int_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ >= wordReg[rid2].int_ ? 1 : 0;
 				break;
 
 			case I_CMP_LE:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].int_ <= reg[rid2].int_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ <= wordReg[rid2].int_ ? 1 : 0;
 				break;
 
 			case I_INC:
 				program.read<reg_t>(&rid1);
-				reg[rid1].int_++;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				wordReg[rid1].int_++;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_DEC:
 				program.read<reg_t>(&rid1);
-				reg[rid1].int_--;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				wordReg[rid1].int_--;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_ADD:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				reg[rid1].int_ = reg[rid2].int_ + reg[rid3].int_;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				wordReg[rid1].int_ = wordReg[rid2].int_ + wordReg[rid3].int_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_SUB:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				reg[rid1].int_ = reg[rid2].int_ - reg[rid3].int_;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				wordReg[rid1].int_ = wordReg[rid2].int_ - wordReg[rid3].int_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_MUL:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				reg[rid1].int_ = reg[rid2].int_ * reg[rid3].int_;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				wordReg[rid1].int_ = wordReg[rid2].int_ * wordReg[rid3].int_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_DIV:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				if (reg[rid3].int_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
-				reg[rid1].int_ = reg[rid2].int_ / reg[rid3].int_;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				if (wordReg[rid3].int_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				wordReg[rid1].int_ = wordReg[rid2].int_ / wordReg[rid3].int_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_MOD:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				if (reg[rid3].int_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
-				reg[rid1].int_ = reg[rid2].int_ % reg[rid3].int_;
-				reg[register_::FZ].bool_ = reg[rid1].int_ == 0 ? 0 : 1;
+				if (wordReg[rid3].int_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				wordReg[rid1].int_ = wordReg[rid2].int_ % wordReg[rid3].int_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].int_ == 0 ? 0 : 1;
 				break;
 
 			case I_TO_C:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[rid1].char_ = static_cast<char_t>(reg[rid2].int_);
+				byteReg[rid1].char_ = static_cast<char_t>(wordReg[rid2].int_);
 				break;
 
 			case C_FLAG:
 				program.read<reg_t>(&rid1);
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				// TODO : Set other flags if they exist?
 				break;
 
 			case C_CMP_EQ:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].char_ == reg[rid2].char_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == byteReg[rid2].char_ ? 1 : 0;
 				break;
 
 			case C_CMP_NE:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].char_ != reg[rid2].char_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ != byteReg[rid2].char_ ? 1 : 0;
 				break;
 
 			case C_CMP_GT:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].char_ > reg[rid2].char_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ > byteReg[rid2].char_ ? 1 : 0;
 				break;
 
 			case C_CMP_LT:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].char_ < reg[rid2].char_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ < byteReg[rid2].char_ ? 1 : 0;
 				break;
 
 			case C_CMP_GE:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].char_ >= reg[rid2].char_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ >= byteReg[rid2].char_ ? 1 : 0;
 				break;
 
 			case C_CMP_LE:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[register_::FZ].bool_ = reg[rid1].char_ <= reg[rid2].char_ ? 1 : 0;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ <= byteReg[rid2].char_ ? 1 : 0;
 				break;
 
 			case C_INC:
 				program.read<reg_t>(&rid1);
-				reg[rid1].char_++;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				byteReg[rid1].char_++;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_DEC:
 				program.read<reg_t>(&rid1);
-				reg[rid1].char_--;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				byteReg[rid1].char_--;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_ADD:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				reg[rid1].char_ = reg[rid2].char_ + reg[rid3].char_;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				byteReg[rid1].char_ = byteReg[rid2].char_ + byteReg[rid3].char_;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_SUB:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				reg[rid1].char_ = reg[rid2].char_ - reg[rid3].char_;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				byteReg[rid1].char_ = byteReg[rid2].char_ - byteReg[rid3].char_;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_MUL:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				reg[rid1].char_ = reg[rid2].char_ * reg[rid3].char_;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				byteReg[rid1].char_ = byteReg[rid2].char_ * byteReg[rid3].char_;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_DIV:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				if (reg[rid3].char_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
-				reg[rid1].char_ = reg[rid2].char_ / reg[rid3].char_;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				if (byteReg[rid3].char_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				byteReg[rid1].char_ = byteReg[rid2].char_ / byteReg[rid3].char_;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_MOD:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
 				program.read<reg_t>(&rid3);
-				if (reg[rid3].char_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
-				reg[rid1].char_ = reg[rid2].char_ % reg[rid3].char_;
-				reg[register_::FZ].bool_ = reg[rid1].char_ == 0 ? 0 : 1;
+				if (byteReg[rid3].char_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				byteReg[rid1].char_ = byteReg[rid2].char_ % byteReg[rid3].char_;
+				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
 				break;
 
 			case C_TO_I:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
-				reg[rid1].int_ = static_cast<char_t>(reg[rid2].char_);
+				wordReg[rid1].int_ = static_cast<char_t>(byteReg[rid2].char_);
+				break;
+
+			case PRNT_C:
+				program.read<reg_t>(&rid1);
+				streamOut << byteReg[rid1].char_;
+				break;
+
+			case PRNT_STR:
+				program.read<reg_t>(&rid1);
+				program.read<word_t>(&word);
+				streamOut << reinterpret_cast<char*>(wordReg[rid1].word + word);
+				break;
+
+			case READ_C:
+				program.read<reg_t>(&rid1);
+				streamIn.get(rlchar);
+				byteReg[rid1].char_ = rlchar;
+				break;
+
+			case READ_STR:
+				program.read<reg_t>(&rid1);
+				program.read<word_t>(&word);
+				streamIn.getline(reinterpret_cast<char*>(wordReg[rid1].word + word), std::numeric_limits<std::streamsize>::max(), '\n');
+				break;
+
+			case R_PRNT_W:
+				program.read<reg_t>(&rid1);
+				streamOut << wordReg[rid1].word;
+				break;
+				
+			case PRNT_LN:
+				streamOut << '\n';
 				break;
 
 			default:

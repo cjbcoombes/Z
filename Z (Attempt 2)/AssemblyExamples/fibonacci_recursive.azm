@@ -27,59 +27,59 @@ globalw %COUNT 10					; The number of fibonacci numbers to calculate
 
 @FIB								; The main function
 
-	movw R1, 2						; Const 2 -> R1
-	loadw R2, BP, 8					; Function Argument -> R2
-	icmple R2, R1					; Argument <= 2
+	movw W1, 2						; Const 2 -> R1
+	loadw W2, BP, 8					; Function Argument -> R2
+	icmple W2, W1					; Argument <= 2
 	jmpz @RECURSE					; Jump to recurse if FALSE (meaning argument > 2)
-	movw R0, 1						; Const 1 -> R0
+	movw W0, 1						; Const 1 -> R0
 	jmp @RETURN						; Jump to return
 
 
 	@RECURSE						; Recursion subroutine
-		idec R2						; Decrement argument
-		storew BP, 12, R2			; Store argument on stack for later
+		idec W2						; Decrement argument
+		storew BP, 12, W2			; Store argument on stack for later
 		storew BP, 16, BP			; Store BP in new stack frame
-		movw R1, 16					; Const 16 -> R1
-		iadd BP, BP, R1				; Increment BP to new stack frame
-		movw R1, @RECURSE_AFTER_1	; Return IP -> R1
-		storew BP, 4, R1			; Store return IP in new stack frame
-		storew BP, 8, R2			; Pass argument to function by storing it in the new stack frame
+		movw W1, 16					; Const 16 -> R1
+		iadd BP, BP, W1				; Increment BP to new stack frame
+		movw W1, @RECURSE_AFTER_1	; Return IP -> R1
+		storew BP, 4, W1			; Store return IP in new stack frame
+		storew BP, 8, W2			; Pass argument to function by storing it in the new stack frame
 		jmp @FIB
 		@RECURSE_AFTER_1
 		loadw BP, BP, 0				; Recover old BP
-		loadw R2, BP, 12			; Recover argument
+		loadw W2, BP, 12			; Recover argument
 
 		; Similar process again
-		idec R2						; Decrement argument
-		storew BP, 12, R0			; Store return value from previous function for later
+		idec W2						; Decrement argument
+		storew BP, 12, W0			; Store return value from previous function for later
 		storew BP, 16, BP			; Store BP in new stack frame
-		movw R1, 16					; Const 16 -> R1
-		iadd BP, BP, R1				; Increment BP to new stack frame
-		movw R1, @RECURSE_AFTER_2	; Return IP -> R1
-		storew BP, 4, R1			; Store return IP in new stack frame
-		storew BP, 8, R2			; Pass argument to function by storing it in the new stack frame
+		movw W1, 16					; Const 16 -> R1
+		iadd BP, BP, W1				; Increment BP to new stack frame
+		movw W1, @RECURSE_AFTER_2	; Return IP -> R1
+		storew BP, 4, W1			; Store return IP in new stack frame
+		storew BP, 8, W2			; Pass argument to function by storing it in the new stack frame
 		jmp @FIB
 		@RECURSE_AFTER_2
 		loadw BP, BP, 0				; Recover old BP
-		loadw R1, BP, 12			; Recover previous return value
+		loadw W1, BP, 12			; Recover previous return value
 
-		iadd R0, R0, R1				; Add directly into return register
+		iadd W0, W0, W1				; Add directly into return register
 		; Auto-continue on to return...
 
 
 	@RETURN
-		loadw R1, BP, 4				; Return IP -> R1
-		rjmp R1						; Jump to return IP
+		loadw W1, BP, 4				; Return IP -> R1
+		rjmp W1						; Jump to return IP
 
 @__START__
 	storew BP, 0, BP				; Store BP in new stack frame
-	movw R1, @END					; Return IP -> R1
-	storew BP, 4, R1				; Store return IP in new stack frame
-	loadw R1, PP, %COUNT			; Count -> R1
-	storew BP, 8, R1				; Pass argument (%COUNT) to function by storing it in the new stack frame
+	movw W1, @END					; Return IP -> R1
+	storew BP, 4, W1				; Store return IP in new stack frame
+	loadw W1, PP, %COUNT			; Count -> R1
+	storew BP, 8, W1				; Pass argument (%COUNT) to function by storing it in the new stack frame
 	jmp @FIB
 
 @END
 	; No need to recover BP
-	rprntw R0
+	rprntw W0
 	halt

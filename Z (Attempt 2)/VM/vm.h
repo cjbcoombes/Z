@@ -17,8 +17,6 @@ namespace vm {
 		typedef int32_t word_t;
 		// 8-bit byte: register IDs, opcode IDs, chars
 		typedef int8_t byte_t;
-		// 16-bit short: 
-		typedef int16_t short_t;
 
 		// Opcode ID: byte
 		typedef uint8_t opcode_t;
@@ -31,6 +29,19 @@ namespace vm {
 		typedef int8_t char_t;
 		// Bool: byte
 		typedef int8_t bool_t;
+
+		union WordVal {
+			word_t word;
+
+			int_t int_;
+		};
+
+		union ByteVal {
+			byte_t byte;
+			
+			char_t char_;
+			bool_t bool_;
+		};
 
 		static_assert(sizeof(std::intptr_t) == sizeof(word_t), "No workaround for non-word-size (32-bit) pointers");
 	}
@@ -63,7 +74,8 @@ namespace vm {
 			enum ErrorType {
 				STRING_TOO_LONG,
 				INVALID_OPCODE_PARSE,
-				INVALID_REG_PARSE,
+				INVALID_WORD_REG_PARSE,
+				INVALID_BYTE_REG_PARSE,
 				INVALID_WORD_PARSE,
 				INVALID_BYTE_PARSE,
 				INVALID_SHORT_PARSE,
@@ -76,7 +88,8 @@ namespace vm {
 			static constexpr const char* const errorStrings[] = {
 				"String too long",
 				"Invalid opcode during parsing",
-				"Invalid register during parsing",
+				"Invalid word register during parsing",
+				"Invalid byte register during parsing",
 				"Invalid word during parsing",
 				"Invalid byte during parsing",
 				"Invalid short during parsing",
@@ -120,15 +133,16 @@ namespace vm {
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// Parsing
 
-		types::reg_t parseRegister(char* const& str, const int& strlen, const int& line, const int& column);
+		types::reg_t parseWordRegister(char* const& str, const int& strlen, const int& line, const int& column);
+		types::reg_t parseByteRegister(char* const& str, const int& strlen, const int& line, const int& column);
 		template<typename T, AssemblerException::ErrorType eType>
 		T parseNumber(const char* str, int strlen, const int& line, const int& column);
 		
 		// Declare for number types
-		template types::reg_t parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(const char*, int, const int&, const int&);
+		template types::reg_t parseNumber<types::reg_t, AssemblerException::INVALID_WORD_REG_PARSE>(const char*, int, const int&, const int&);
+		template types::reg_t parseNumber<types::reg_t, AssemblerException::INVALID_BYTE_REG_PARSE>(const char*, int, const int&, const int&);
 		template types::word_t parseNumber<types::word_t, AssemblerException::INVALID_WORD_PARSE>(const char*, int, const int&, const int&);
-		template types::byte_t parseNumber<types::byte_t, AssemblerException::INVALID_WORD_PARSE>(const char*, int, const int&, const int&);
-		template types::short_t parseNumber<types::short_t, AssemblerException::INVALID_WORD_PARSE>(const char*, int, const int&, const int&);
+		template types::byte_t parseNumber<types::byte_t, AssemblerException::INVALID_BYTE_PARSE>(const char*, int, const int&, const int&);
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -174,18 +188,6 @@ namespace vm {
 			unsigned int stackSize;
 
 			ExecutorSettings() : stackSize(0x1000) {}
-		};
-
-		union Value {
-			types::word_t word;
-			types::byte_t byte;
-			types::short_t short_;
-
-			types::int_t int_;
-			types::char_t char_;
-			types::bool_t bool_;
-
-			Value() : word(0) {}
 		};
 
 		class Program {

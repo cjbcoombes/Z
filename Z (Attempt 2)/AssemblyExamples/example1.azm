@@ -2,91 +2,56 @@ globalstr %INTRO, "\n\nWelcome to the guessing game!\nYou must guess a number fr
 globalstr %GC1, "You have used "
 globalstr %GC2, " guesses.\n"
 globalstr %QUERY, "What is your guess? "
-globalstr %C0, "0"
-globalstr %C9, "9"
 globalstr %GTR, "Your guess is too high.\n\n"
 globalstr %LSS, "Your guess is too low.\n\n"
 globalstr %WIN1, "You won with "
 globalstr %WIN2, " guesses."
 globalstr %RAND, "Please type some stuff to seed the random generator: "
 
+@PARSE_NUM				; Stack: BP, IP, char* str, word base
+	loadw W1, BP, 8		; str
+	loadw W2, BP, 12	; base
+	movw W3, 48			; char '0'
+	; movw W4, 65			; char 'A'
+	; movw W7, 17			; char 'A' - char '0'
+	
+	movw W5, 0			; counter
+
+	@PARSE_NUM_LOOP
+		loadb B1, W1, 0		; current char
+		cflag B1
+		jmpz @PARSE_NUM_LOOP_END	; jump if zero, meaning null termination of string
+
+		imul W5, W5, W2		; shift by base
+
+		ctoi W6, B1			; to word
+		isub W6, W6, W3		; subtract '0'
+		iadd W5, W5, W6		; add to live count
+		iinc W1
+		jmp @PARSE_NUM_LOOP
+
+		@PARSE_NUM_LOOP_END
+
+	rmovw W0, W5
+	loadw W1, BP, 4
+	rjmp W1
+
 @__START__
-; Register constants
-movw R0, 10				; const base 10
-movw R1, 0				; const 0
-loadb R2, PP, %C0		; char 0
-loadb R3, PP, %C9		; char 9
-
-movw R4, 69				; The number to guess!
-movw R5, 0				; # Guesses
-
-movw R6, 0x100
-alloc R6, R6			; Allocate space for user input
-prntstr PP, %INTRO		; Show intro
-
-; @RAND
-	prntstr PP, %RAND
-	readstr R6, 0
-	loadb R7, R6, 0
-	ctoi R4, R7
-	movw R8, 30
-	movw R9, 17			; Mult
-	movw R10, 28		; Inc
-	movw R11, 100		; Mod
-	@RAND_LOOP
-		imul R4, R4, R9
-		iadd R4, R4, R10
-		imod R4, R4, R11
-		idec R8
-		jmpnz @RAND_LOOP
-
-	iinc R4				; Shift from 0-99 -> 1-100
-
-
-
-@QUERY
-	prntstr PP, %GC1
-	rprntw R5
-	prntstr PP, %GC2
-	prntstr PP, %QUERY		; Query
-	readstr R6, 0			; Read user input
-	
-	movw R7, 0				; User's number
-	mov R8, R6				; Ptr to current char
-		
-	@PARSE
-		loadb R9, R8, 0			; Load char
-		cflag R9				; Set flag
-		jmpz @POST_PARSE		; If zero, stop parse
-		imul R7, R7, R0			; Shift base
-
-		; Check bounds?
-
-		csub R9, R9, R2			; char - const char 0
-		ctoi R9, R9				; To int
-		iadd R7, R7, R9			; Add to running total
-		iinc R8					; Increment ptr
-		jmp @PARSE				; Next char
-
-		@POST_PARSE
-
-	iinc R5					; Add guess
-	icmpeq R7, R4			; If they're equal
-	jmpnz @WIN				; You win!
-	icmpgt R7, R4			; If it's greater
-	jmpz @LESS
-	prntstr PP, %GTR		; Message
-	jmp @QUERY				; Next iter
-	@LESS					; If it's less
-	prntstr PP, %LSS		; Message
-	jmp @QUERY				; Next iter
-
-
-@WIN
-	prntstr PP, %WIN1
-	rprntw R5
-	prntstr PP, %WIN2
-	
-
-free R6
-halt
+movw W0, 0x100
+alloc W1, W0
+readstr W1, 0
+storew BP, 0, W1
+storew BP, 4, BP
+movw W0, 4
+iadd BP, BP, W0
+movw W0, @AFTER_PARSE_NUM
+storew BP, 4, W0
+storew BP, 8, W1
+movw W0, 10
+storew BP, 12, W0
+jmp @PARSE_NUM
+@AFTER_PARSE_NUM
+loadw BP, BP, 0
+rprntw W0
+loadw W1, BP, 0
+free W1

@@ -3,6 +3,10 @@
   "Id": "8d47a112-13f0-497b-9919-373ca6b8f169",
   "Items": [
     {
+      "Id": "a43e8a8c-4113-4094-885a-6112449b6b1f",
+      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\simple_user_input.azm\" \".\\AssemblyExamples\\simple_user_input.eze\""
+    },
+    {
       "Id": "0881402b-2f0a-4dcc-8eb6-8314694cee22",
       "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\fibonacci_fast.azm\" \".\\AssemblyExamples\\fibonacci_fast.eze\""
     },

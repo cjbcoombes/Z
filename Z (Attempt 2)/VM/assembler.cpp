@@ -104,7 +104,6 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 	reg_t reg = 0;
 	word_t word = 0;
 	byte_t byte = 0;
-	short_t short_ = 0;
 
 	// Pre-assembly file writing
 	word_t dummy = labelErr;
@@ -130,6 +129,8 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 					line--;
 				} else if (c == 'c') {
 					c = '\033';
+				} else if (c == '0') {
+					c = '\0';
 				}
 				// nothing on c == '"'
 
@@ -225,12 +226,17 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 						carg = MAX_ARGS;
 						break;
 
-					case 1: // ARG_REG
-						reg = parseRegister(str, strlen, line, column);
+					case 1: // ARG_WORD_REG
+						reg = parseWordRegister(str, strlen, line, column);
+						ASM_WRITE(reg, reg_t);
+						break;
+					
+					case 2: // ARG_BYTE_REG
+						reg = parseByteRegister(str, strlen, line, column);
 						ASM_WRITE(reg, reg_t);
 						break;
 
-					case 2: // ARG_WORD
+					case 3: // ARG_WORD
 						if (str[0] == '@' || str[0] == '%') {
 							stdstr = str;
 							labels[stdstr].refs.push_back(Label::Ref(outputFile.tellp(), line, column));
@@ -242,14 +248,9 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 						}
 						break;
 
-					case 3: // ARG_BYTE
+					case 4: // ARG_BYTE
 						byte = parseNumber<byte_t, AssemblerException::INVALID_BYTE_PARSE>(str, strlen, line, column);
 						ASM_WRITE(byte, byte_t);
-						break;
-
-					case 4: // ARG_SHORT
-						short_ = parseNumber<short_t, AssemblerException::INVALID_SHORT_PARSE>(str, strlen, line, column);
-						ASM_WRITE(short_, short_t);
 						break;
 
 					case 5: // ARG_VAR
@@ -315,23 +316,46 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Parsing
 
-vm::types::reg_t vm::assembler::parseRegister(char* const& str, const int& strlen, const int& line, const int& column) {
-	if (strlen < 2) throw AssemblerException(AssemblerException::INVALID_REG_PARSE, line, column);
+vm::types::reg_t vm::assembler::parseWordRegister(char* const& str, const int& strlen, const int& line, const int& column) {
+	if (strlen < 2) throw AssemblerException(AssemblerException::INVALID_WORD_REG_PARSE, line, column);
 
-	int match = stringMatchAt(str, register_::strings, register_::R0);
+	int match = stringMatchAt(str, register_::strings, register_::W0);
 
-	if (match >= 0) return match;
-	else if (str[0] == 'R') {
-		types::reg_t out = parseNumber<types::reg_t, AssemblerException::INVALID_REG_PARSE>(str + 1, strlen - 1, line, column);
+	if (match >= 0) {
+		if (match == register_::PP || match == register_::BP) return match;
+		else throw AssemblerException(AssemblerException::INVALID_WORD_REG_PARSE, line, column);
+	} else if (str[0] == 'W') {
+		types::reg_t out = parseNumber<types::reg_t, AssemblerException::INVALID_WORD_REG_PARSE>(str + 1, strlen - 1, line, column);
 
-		if (out >= register_::NUM_GEN_REGISTERS || out < 0) {
-			throw AssemblerException(AssemblerException::INVALID_REG_PARSE, line, column);
+		if (out >= register_::NUM_WORD_REGISTERS || out < 0) {
+			throw AssemblerException(AssemblerException::INVALID_WORD_REG_PARSE, line, column);
 		}
 
-		return out + register_::R0;
+		return out + register_::W0;
 	}
 
-	throw AssemblerException(AssemblerException::INVALID_REG_PARSE, line, column);
+	throw AssemblerException(AssemblerException::INVALID_WORD_REG_PARSE, line, column);
+}
+
+vm::types::reg_t vm::assembler::parseByteRegister(char* const& str, const int& strlen, const int& line, const int& column) {
+	if (strlen < 2) throw AssemblerException(AssemblerException::INVALID_BYTE_REG_PARSE, line, column);
+
+	int match = stringMatchAt(str, register_::strings, register_::W0);
+
+	if (match >= 0) {
+		if (match == register_::FZ) return match;
+		else throw AssemblerException(AssemblerException::INVALID_BYTE_REG_PARSE, line, column);
+	} else if (str[0] == 'B') {
+		types::reg_t out = parseNumber<types::reg_t, AssemblerException::INVALID_BYTE_REG_PARSE>(str + 1, strlen - 1, line, column);
+
+		if (out >= register_::NUM_WORD_REGISTERS || out < 0) {
+			throw AssemblerException(AssemblerException::INVALID_BYTE_REG_PARSE, line, column);
+		}
+
+		return out + register_::B0;
+	}
+
+	throw AssemblerException(AssemblerException::INVALID_BYTE_REG_PARSE, line, column);
 }
 
 template<typename T, vm::assembler::AssemblerException::ErrorType eType>
@@ -367,29 +391,27 @@ T vm::assembler::parseNumber(const char* str, int strlen, const int& line, const
 		}
 	}
 
-	T place = 1, out = 0;
+	T out = 0;
 	char c;
-	str += strlen - 1;
 	while (strlen > 0) {
+		out *= base;
 		c = *str;
 
 		if ('0' <= c && c <= '9') {
 			if (c - '0' >= base) throw AssemblerException(eType, line, column);
-			out += place * (c - '0');
+			out += c - '0';
 		} else if ('A' <= c && c <= 'Z') {
 			if (c - 'A' + 10 >= base) throw AssemblerException(eType, line, column);
-			out += place * (c - 'A' + 10);
+			out += c - 'A' + 10;
 		} else if ('a' <= c && c <= 'z') {
 			if (c - 'a' + 10 >= base) throw AssemblerException(eType, line, column);
-			out += place * (c - 'a' + 10);
+			out += c - 'a' + 10;
 		} else {
 			throw AssemblerException(eType, line, column);
 		}
 
-		place *= base;
-
 		strlen--;
-		str--;
+		str++;
 	}
 
 	return out * mul;

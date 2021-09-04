@@ -21,18 +21,18 @@
 globalw %COUNT 10					; The number of fibonacci numbers to calculate
 
 
-loadw R0, PP, %COUNT
-idec R0
-idec R0
-movw R1, 1
-movw R2, 1
+loadw W0, PP, %COUNT
+idec W0
+idec W0
+movw W1, 1
+movw W2, 1
 
 @LOOP
-	mov R3, R1
-	iadd R1, R1, R2
-	mov R2, R3
-	idec R0
+	rmovw W3, W1
+	iadd W1, W1, W2
+	rmovw W2, W3
+	idec W0
 	jmpnz @LOOP
 
-rprntw R1
+rprntw W1
 halt
