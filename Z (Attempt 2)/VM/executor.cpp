@@ -1,5 +1,6 @@
 #include "vm.h"
 #include <limits>
+#include <math.h>
 
 using std::cout;
 
@@ -47,6 +48,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 	byte_t byte = 0;
 	int_t int_ = 0;
 	char_t char_ = 0;
+	float_t float_ = 0;
 	char rlchar = 0;
 
 	while (program.ip < program.end) {
@@ -83,7 +85,7 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				program.read<reg_t>(&rid2);
 				wordReg[rid1] = wordReg[rid2];
 				break;
-			
+
 			case R_MOV_B:
 				program.read<reg_t>(&rid1);
 				program.read<reg_t>(&rid2);
@@ -278,6 +280,12 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				byteReg[rid1].char_ = static_cast<char_t>(wordReg[rid2].int_);
 				break;
 
+			case I_TO_F:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				wordReg[rid1].float_ = static_cast<float_t>(wordReg[rid2].int_);
+				break;
+
 			case C_FLAG:
 				program.read<reg_t>(&rid1);
 				byteReg[register_::FZ].bool_ = byteReg[rid1].char_ == 0 ? 0 : 1;
@@ -380,6 +388,108 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				wordReg[rid1].int_ = static_cast<char_t>(byteReg[rid2].char_);
 				break;
 
+			case C_TO_F:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				wordReg[rid1].float_ = static_cast<float_t>(byteReg[rid2].char_);
+				break;
+
+			case F_FLAG:
+				program.read<reg_t>(&rid1);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == 0 ? 0 : 1;
+				// TODO : Set other flags if they exist?
+				break;
+
+			case F_CMP_EQ:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == wordReg[rid2].float_ ? 1 : 0;
+				break;
+
+			case F_CMP_NE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ != wordReg[rid2].float_ ? 1 : 0;
+				break;
+
+			case F_CMP_GT:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ > wordReg[rid2].float_ ? 1 : 0;
+				break;
+
+			case F_CMP_LT:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ < wordReg[rid2].float_ ? 1 : 0;
+				break;
+
+			case F_CMP_GE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ >= wordReg[rid2].float_ ? 1 : 0;
+				break;
+
+			case F_CMP_LE:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ <= wordReg[rid2].float_ ? 1 : 0;
+				break;
+
+			case F_ADD:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				wordReg[rid1].float_ = wordReg[rid2].float_ + wordReg[rid3].float_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == 0 ? 0 : 1;
+				break;
+
+			case F_SUB:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				wordReg[rid1].float_ = wordReg[rid2].float_ - wordReg[rid3].float_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == 0 ? 0 : 1;
+				break;
+
+			case F_MUL:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				wordReg[rid1].float_ = wordReg[rid2].float_ * wordReg[rid3].float_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == 0 ? 0 : 1;
+				break;
+
+			case F_DIV:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				if (wordReg[rid3].float_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				wordReg[rid1].float_ = wordReg[rid2].float_ / wordReg[rid3].float_;
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == 0 ? 0 : 1;
+				break;
+
+			case F_MOD:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				program.read<reg_t>(&rid3);
+				if (wordReg[rid3].float_ == 0) throw ExecutorException(ExecutorException::DIVIDE_BY_ZERO, program.ip - program.start);
+				wordReg[rid1].float_ = wordReg[rid2].float_ * modf(wordReg[rid2].float_ / wordReg[rid3].float_, &float_);
+				byteReg[register_::FZ].bool_ = wordReg[rid1].float_ == 0 ? 0 : 1;
+				break;
+
+			case F_TO_C:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				byteReg[rid1].char_ = static_cast<char_t>(wordReg[rid2].float_);
+				break;
+
+			case F_TO_I:
+				program.read<reg_t>(&rid1);
+				program.read<reg_t>(&rid2);
+				wordReg[rid1].int_ = static_cast<int_t>(wordReg[rid2].float_);
+				break;
+
 			case PRNT_C:
 				program.read<reg_t>(&rid1);
 				streamOut << byteReg[rid1].char_;
@@ -403,11 +513,16 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				streamIn.getline(reinterpret_cast<char*>(wordReg[rid1].word + word), std::numeric_limits<std::streamsize>::max(), '\n');
 				break;
 
-			case R_PRNT_W:
+			case R_PRNT_I:
 				program.read<reg_t>(&rid1);
-				streamOut << wordReg[rid1].word;
+				streamOut << wordReg[rid1].int_;
 				break;
-				
+
+			case R_PRNT_F:
+				program.read<reg_t>(&rid1);
+				streamOut << wordReg[rid1].float_;
+				break;
+
 			case PRNT_LN:
 				streamOut << '\n';
 				break;

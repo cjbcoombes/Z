@@ -392,10 +392,20 @@ T vm::assembler::parseNumber(const char* str, int strlen, const int& line, const
 	}
 
 	T out = 0;
+	bool isFloat = false;
 	char c;
 	while (strlen > 0) {
-		out *= base;
 		c = *str;
+
+		if (c == '.') {
+			if (sizeof(T) != sizeof(float)) throw AssemblerException(eType, line, column);
+			isFloat = true;
+			strlen--;
+			str++;
+			break;
+		}
+
+		out *= base;
 
 		if ('0' <= c && c <= '9') {
 			if (c - '0' >= base) throw AssemblerException(eType, line, column);
@@ -412,6 +422,39 @@ T vm::assembler::parseNumber(const char* str, int strlen, const int& line, const
 
 		strlen--;
 		str++;
+	}
+
+
+	float floatOut = 0;
+	float floatBase = 1 / static_cast<float>(base);
+	float place = floatBase;
+
+	if (isFloat) {
+		while (strlen > 0) {
+			c = *str;
+
+			if ('0' <= c && c <= '9') {
+				if (c - '0' >= base) throw AssemblerException(eType, line, column);
+				floatOut += (c - '0') * place;
+			} else if ('A' <= c && c <= 'Z') {
+				if (c - 'A' + 10 >= base) throw AssemblerException(eType, line, column);
+				floatOut += (c - 'A' + 10) * place;
+			} else if ('a' <= c && c <= 'z') {
+				if (c - 'a' + 10 >= base) throw AssemblerException(eType, line, column);
+				floatOut += (c - 'a' + 10) * place;
+			} else {
+				throw AssemblerException(eType, line, column);
+			}
+
+			place *= floatBase;
+
+			strlen--;
+			str++;
+		}
+
+		floatOut += static_cast<float>(out);
+		floatOut *= mul;
+		return *reinterpret_cast<T*>(&floatOut);
 	}
 
 	return out * mul;

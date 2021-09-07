@@ -1,0 +1,47 @@
+@PARSE_NUM				; Stack: BP, IP, char* str, word base
+	loadw W1, BP, 8		; str
+	loadw W2, BP, 12	; base
+	movw W3, 48			; char '0'
+	; movw W4, 65			; char 'A'
+	; movw W7, 17			; char 'A' - char '0'
+	
+	movw W5, 0			; counter
+
+	@PARSE_NUM_LOOP
+		loadb B1, W1, 0		; current char
+		cflag B1
+		jmpz @PARSE_NUM_LOOP_END	; jump if zero, meaning null termination of string
+
+		imul W5, W5, W2		; shift by base
+
+		ctoi W6, B1			; to word
+		isub W6, W6, W3		; subtract '0'
+		iadd W5, W5, W6		; add to live count
+		iinc W1
+		jmp @PARSE_NUM_LOOP
+
+		@PARSE_NUM_LOOP_END
+
+	rmovw W0, W5
+	loadw W1, BP, 4
+	rjmp W1
+
+@__START__
+movw W0, 0x100
+alloc W1, W0
+readstr W1, 0
+storew BP, 0, W1
+storew BP, 4, BP
+movw W0, 4
+iadd BP, BP, W0
+movw W0, @AFTER_PARSE_NUM
+storew BP, 4, W0
+storew BP, 8, W1
+movw W0, 10
+storew BP, 12, W0
+jmp @PARSE_NUM
+@AFTER_PARSE_NUM
+loadw BP, BP, 0
+rprntw W0
+loadw W1, BP, 0
+free W1

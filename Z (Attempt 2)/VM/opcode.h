@@ -41,6 +41,7 @@ namespace vm {
 			I_DIV,
 			I_MOD,
 			I_TO_C,
+			I_TO_F,
 			//
 			C_FLAG,
 			C_CMP_EQ,
@@ -58,6 +59,23 @@ namespace vm {
 			C_DIV,
 			C_MOD,
 			C_TO_I,
+			C_TO_F,
+			//
+			F_FLAG,
+			F_CMP_EQ,
+			F_CMP_NE,
+			F_CMP_GT,
+			F_CMP_LT,
+			F_CMP_GE,
+			F_CMP_LE,
+			//
+			F_ADD,
+			F_SUB,
+			F_MUL,
+			F_DIV,
+			F_MOD,
+			F_TO_I,
+			F_TO_C,
 			//
 			// 
 			//
@@ -69,7 +87,8 @@ namespace vm {
 			//
 			// 
 			// 
-			R_PRNT_W,
+			R_PRNT_I,
+			R_PRNT_F,
 			PRNT_LN,
 			// 
 			//
@@ -82,7 +101,7 @@ namespace vm {
 		};
 
 		constexpr int SYSCALL_BREAK = PRNT_C;
-		constexpr int DEBUG_BREAK = R_PRNT_W;
+		constexpr int DEBUG_BREAK = R_PRNT_I;
 		constexpr int GLOBAL_BREAK = GLOBAL_W;
 
 		constexpr const char* const strings[] = {
@@ -126,6 +145,7 @@ namespace vm {
 			"idiv",
 			"imod",
 			"itoc",
+			"itof",
 			//
 			"cflag",
 			"ccmpeq",
@@ -143,6 +163,23 @@ namespace vm {
 			"cdiv",
 			"cmod",
 			"ctoi",
+			"ctof",
+			//
+			"fflag",
+			"fcmpeq",
+			"fcmpne",
+			"fcmpgt",
+			"fcmplt",
+			"fcmpge",
+			"fcmple",
+			//
+			"fadd",
+			"fsub",
+			"fmul",
+			"fdiv",
+			"fmod",
+			"ftoi",
+			"ftoc",
 			//
 			// 
 			// 
@@ -154,7 +191,8 @@ namespace vm {
 			//
 			// 
 			// 
-			"rprntw",
+			"rprnti",
+			"rprntf",
 			"prntln",
 			// 
 			//
@@ -217,6 +255,7 @@ namespace vm {
 			{1, 1, 1},	// I_DIV
 			{1, 1, 1},	// I_MOD
 			{2, 1, 0},	// I_TO_C
+			{1, 1, 0},	// I_TO_F
 			//
 			{2, 0, 0},	// C_FLAG
 			{2, 2, 0},	// C_CMP_EQ
@@ -234,6 +273,23 @@ namespace vm {
 			{2, 2, 2},	// C_DIV
 			{2, 2, 2},	// C_MOD
 			{1, 2, 0},	// C_TO_I
+			{1, 2, 0},	// C_TO_F
+			//
+			{1, 0, 0},	// F_FLAG
+			{1, 1, 0},	// F_CMP_EQ
+			{1, 1, 0},	// F_CMP_NE
+			{1, 1, 0},	// F_CMP_GT
+			{1, 1, 0},	// F_CMP_LT
+			{1, 1, 0},	// F_CMP_GE
+			{1, 1, 0},	// F_CMP_LE
+			//
+			{1, 1, 1},	// F_ADD
+			{1, 1, 1},	// F_SUB
+			{1, 1, 1},	// F_MUL
+			{1, 1, 1},	// F_DIV
+			{1, 1, 1},	// F_MOD
+			{2, 1, 0},	// F_TO_C
+			{1, 1, 0},	// F_TO_I
 			//
 			// 
 			//
@@ -245,7 +301,8 @@ namespace vm {
 			//
 			// 
 			// Temp?
-			{1, 0, 0},	// R_PRNT_W
+			{1, 0, 0},	// R_PRNT_I
+			{1, 0, 0},	// R_PRNT_F
 			{0, 0, 0},	// PRNT_LN
 			// 
 			// 

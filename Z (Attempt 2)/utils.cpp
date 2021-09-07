@@ -42,7 +42,7 @@ Flags::Flags() : bits(0) {}
 Flags::Flags(const int& bitsIn) : bits(bitsIn) {}
 
 bool Flags::hasFlags(const int& flags) {
-	return (bits & flags) == flags;
+	return !(bits ^ flags);
 }
 
 void Flags::setFlags(const int& flags) {

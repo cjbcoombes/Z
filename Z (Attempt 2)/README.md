@@ -7,10 +7,10 @@ but that vm was created as I was learning how to design it, and as such has some
 that knowledge to streamline the code.
 
 #### Major Changes:
- - 
+ - Removed shorts
 
 ## Running It
-Compiles (for me) in Microsoft Visual Studio Community 2019 Version 16.10.2
+Compiles (on my machine) in Microsoft Visual Studio Community 2019 Version 16.11.2
 
 Currently my command line arguments are:\
 `z2_0.exe -debug -profile -asmandexec "file.azm" "file.eze"`
@@ -63,13 +63,15 @@ N/A         | IP            | Instruction pointer (not accessible by program)
 TODO: put in all of the number codes once finalized \
 
 Possible Arguments: \
-[reg] is a 1-byte register ID \
-[off] is a 4-byte offset used for branching \
-[byte] is a byte \
-[word] is a 4-byte word. A [label] can go in the place of any word, and the program address will be inserted there \
-[label] is a label, starting with "@", that will be converted to a program address for branching \
-[var] is the address of a global, starting with "%", and can go in the place of any word \
-[string] is a null-terminated string
+`[reg]` is a 1-byte register ID \
+`[off]` is a 4-byte offset used for branching \
+`[byte]` is a byte \
+`[word]` is a 4-byte word. A `[label]` or `[var]` can go in the place of any word, and the program/memory address will be inserted there. 
+Numerical values will be formatted as integers unless they contain a decimal point, then they will be formatted as floats.
+(Ex: INTEGERS: 3, 4, -17; FLOATS: 3., 4.17, -19.21904) \
+`[label]` is a label, starting with "@", that can go in the place of any word and will be converted to a program address \
+`[var]` is the address of a global, starting with "%", that can go in the place of any word and will be converted to a memory address relative to PP\
+`[string]` is a null-terminated string
 
 (F) means it sets the flags based on the result \
 \{addr\} means the value at address addr

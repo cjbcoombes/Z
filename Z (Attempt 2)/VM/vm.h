@@ -25,6 +25,7 @@ namespace vm {
 
 		// Integer: word
 		typedef int32_t int_t;
+		typedef float float_t;
 		// Char: byte
 		typedef int8_t char_t;
 		// Bool: byte
@@ -34,6 +35,7 @@ namespace vm {
 			word_t word;
 
 			int_t int_;
+			float_t float_;
 		};
 
 		union ByteVal {
@@ -44,6 +46,7 @@ namespace vm {
 		};
 
 		static_assert(sizeof(std::intptr_t) == sizeof(word_t), "No workaround for non-word-size (32-bit) pointers");
+		static_assert(sizeof(float) == sizeof(word_t), "No workaround for non-word-size (32-bit) floats");
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -33,12 +33,16 @@
     <ClInclude Include="VM\vm.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AssemblyExamples\babylonian_sqrt.azm" />
+    <None Include="AssemblyExamples\babylonian_sqrt.eze" />
     <None Include="AssemblyExamples\example1.azm" />
     <None Include="AssemblyExamples\example1.eze" />
     <None Include="AssemblyExamples\fibonacci_fast.azm" />
     <None Include="AssemblyExamples\fibonacci_fast.eze" />
     <None Include="AssemblyExamples\fibonacci_recursive.azm" />
     <None Include="AssemblyExamples\fibonacci_recursive.eze" />
+    <None Include="AssemblyExamples\guessing_game_wip.azm" />
+    <None Include="AssemblyExamples\guessing_game_wip.eze" />
     <None Include="AssemblyExamples\simple_user_input.azm" />
     <None Include="AssemblyExamples\simple_user_input.eze" />
     <None Include="README.md" />

@@ -71,5 +71,17 @@
     <None Include="AssemblyExamples\simple_user_input.eze">
       <Filter>AssemblyExamples</Filter>
     </None>
+    <None Include="AssemblyExamples\guessing_game_wip.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\guessing_game_wip.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\babylonian_sqrt.azm">
+      <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="AssemblyExamples\babylonian_sqrt.eze">
+      <Filter>AssemblyExamples</Filter>
+    </None>
   </ItemGroup>
 </Project>
