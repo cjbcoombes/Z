@@ -3,6 +3,10 @@
   "Id": "8d47a112-13f0-497b-9919-373ca6b8f169",
   "Items": [
     {
+      "Id": "cb41e2cd-7501-4e36-b2eb-40883d114bbe",
+      "Command": "-debug -profile -compile \".\\CompilerExamples\\example1.z\" \".\\CompilerExamples\\example1.eze\""
+    },
+    {
       "Id": "a43e8a8c-4113-4094-885a-6112449b6b1f",
       "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\simple_user_input.azm\" \".\\AssemblyExamples\\simple_user_input.eze\""
     },

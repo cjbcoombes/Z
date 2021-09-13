@@ -1,11 +1,11 @@
-#include "vm.h"
+#include "executor.h"
 #include <limits>
 #include <math.h>
 
 using std::cout;
 
 #define AS_WORD(x) \
-	reinterpret_cast<vm::types::word_t*>(x)
+	reinterpret_cast<types::word_t*>(x)
 
 int vm::executor::exec(const char* const& path, ExecutorSettings& execSettings) {
 	cout << "Attempting to execute file \"" << path << "\"\n";

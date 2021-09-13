@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Compiler\compiler.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="VM\assembler.cpp" />
@@ -26,8 +27,11 @@
     <ClCompile Include="VM\vm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Compiler\compiler.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="VM\assembler.h" />
+    <ClInclude Include="VM\executor.h" />
     <ClInclude Include="VM\opcode.h" />
     <ClInclude Include="VM\register.h" />
     <ClInclude Include="VM\vm.h" />
@@ -45,6 +49,8 @@
     <None Include="AssemblyExamples\guessing_game_wip.eze" />
     <None Include="AssemblyExamples\simple_user_input.azm" />
     <None Include="AssemblyExamples\simple_user_input.eze" />
+    <None Include="CompilerExamples\example1.eze" />
+    <None Include="CompilerExamples\example1.z" />
     <None Include="README.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -1,0 +1,153 @@
+#include "../utils.h"
+#include <vector>
+
+namespace compiler {
+	using namespace types;
+
+	constexpr int MAX_STR_SIZE = 1024;
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Tokens
+
+	enum class TokenType {
+		IDENTIFIER,
+		PRIMITIVE_TYPE,
+		// Single-char Tokens
+		TILDE,
+		BTICK,
+		EXPT,
+		AT,
+		HASH,
+		DOLLAR,
+		PCT,
+		CARET,
+		AMP,
+		STAR,
+		USCORE,
+		DASH,
+		PLUS,
+		EQUALS,
+		PIPE,
+		BSLASH,
+		COLON,
+		SEMICOLON,
+		DBLQUOTE,
+		QUOTE,
+		COMMA,
+		PERIOD,
+		QMARK,
+		SLASH,
+		LEFT_PAREN,
+		RIGHT_PAREN,
+		LEFT_SQUARE,
+		RIGHT_SQUARE,
+		LEFT_CURLY,
+		RIGHT_CURLY,
+		LEFT_ANGLE,
+		RIGHT_ANGLE,
+		// Other stuff
+		RETURN
+	};
+
+	constexpr int firstSingleCharToken = static_cast<int>(TokenType::TILDE);
+	constexpr char singleCharTokens[] = {
+		'~', '`',  '!', '#', '$', '%',  '^', '&', '*', '_', '-', '+', '=',
+		'|', '\\', ':', ';', '"', '\'', ',', '.', '?', '/',
+		'(', ')', '[', ']', '{', '}', '<', '>'
+	};
+	constexpr int numSingleCharTokens = ARR_LEN(singleCharTokens);
+
+	enum class PrimitiveType {
+		INT,
+		FLOAT,
+		CHAR,
+		BOOL
+	};
+	
+	struct Token {
+		Token(const Token&) = delete;
+		Token& operator=(const Token&) = delete;
+		Token(Token&&) = default;
+		Token& operator=(Token&&) = default;
+
+		const TokenType type;
+		const bool hasStr;
+		const int line;
+		const int column;
+
+		union {
+			word_t word;
+			float_t float_;
+			int_t int_;
+
+			byte_t byte;
+			char_t char_;
+			bool_t bool_;
+
+			PrimitiveType primType;
+
+			std::string* str;
+		};
+
+		Token(TokenType typeIn, int lineIn, int columnIn) : type(typeIn), hasStr(false), str(nullptr), line(lineIn), column(columnIn) {}
+		Token(TokenType typeIn, int lineIn, int columnIn, std::string* strIn) : type(typeIn), hasStr(true), str(strIn), line(lineIn), column(columnIn) {}
+	};
+	
+	class TokenList : public std::vector<Token> {
+	public:
+		~TokenList() {
+			for (auto ptr = begin(); ptr < end(); ptr++) {
+				if (ptr->hasStr) delete ptr->str;
+			}
+		}
+	};
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Settings
+
+	struct CompilerSettings {
+		Flags flags;
+	};
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Exceptions
+
+	class CompilerException : public std::exception {
+	public:
+		enum ErrorType {
+			STRING_TOO_LONG
+		};
+
+		static constexpr const char* const errorStrings[] = {
+			"String too long"
+		};
+
+		const ErrorType eType;
+		const int line;
+		const int column;
+		std::string extra;
+
+		CompilerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra("") {}
+		CompilerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn, char* const& extraIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra(extraIn) {}
+		CompilerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn, const char* const& extraIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra(extraIn) {}
+		CompilerException(const ErrorType& eTypeIn, const int& lineIn, const int& columnIn, const std::string& extraIn) : eType(eTypeIn), line(lineIn), column(columnIn), extra(extraIn) {}
+
+
+		virtual const char* what() {
+			if (extra.length() == 0) {
+				return errorStrings[eType];
+			} else {
+				extra.insert(0, " : ");
+				extra.insert(0, errorStrings[eType]);
+				return extra.c_str();
+			}
+		}
+	};
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Functions
+
+	int compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& settings);
+	int compile_(std::iostream& inputFile, std::iostream& outputFile, CompilerSettings& settings, std::ostream& stream);
+	int tokenize(TokenList& tokenList, std::iostream& file, std::ostream& stream);
+}

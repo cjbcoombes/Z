@@ -1,4 +1,4 @@
-#include "vm.h"
+#include "assembler.h"
 
 #include <ios>
 #include <unordered_map>
@@ -40,10 +40,10 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 
 int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream) {
 	using namespace vm::opcode;
-	using namespace vm::types;
+	using namespace types;
 
 	// Flags/settings
-	const bool isDebug = assemblerSettings.flags.hasFlags(vm::FLAG_DEBUG);
+	const bool isDebug = assemblerSettings.flags.hasFlags(FLAG_DEBUG);
 
 	// File setup
 	assemblyFile.clear();
@@ -83,7 +83,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 		bool isDef;
 
 		Label() : val(0), isDef(false) {}
-		Label(vm::types::word_t valIn) : val(valIn), isDef(true) {}
+		Label(types::word_t valIn) : val(valIn), isDef(true) {}
 	};
 	std::unordered_map<std::string, Label> labels;
 	std::string startstr = "@__START__";
@@ -316,7 +316,7 @@ int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputF
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Parsing
 
-vm::types::reg_t vm::assembler::parseWordRegister(char* const& str, const int& strlen, const int& line, const int& column) {
+types::reg_t vm::assembler::parseWordRegister(char* const& str, const int& strlen, const int& line, const int& column) {
 	if (strlen < 2) throw AssemblerException(AssemblerException::INVALID_WORD_REG_PARSE, line, column);
 
 	int match = stringMatchAt(str, register_::strings, register_::W0);
@@ -337,7 +337,7 @@ vm::types::reg_t vm::assembler::parseWordRegister(char* const& str, const int& s
 	throw AssemblerException(AssemblerException::INVALID_WORD_REG_PARSE, line, column);
 }
 
-vm::types::reg_t vm::assembler::parseByteRegister(char* const& str, const int& strlen, const int& line, const int& column) {
+types::reg_t vm::assembler::parseByteRegister(char* const& str, const int& strlen, const int& line, const int& column) {
 	if (strlen < 2) throw AssemblerException(AssemblerException::INVALID_BYTE_REG_PARSE, line, column);
 
 	int match = stringMatchAt(str, register_::strings, register_::W0);

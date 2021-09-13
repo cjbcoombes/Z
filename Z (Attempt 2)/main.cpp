@@ -14,11 +14,13 @@ int main(int argc, const char* args[]) {
 		"-nodebug",
 		"-profile",
 		"-noprofile",
-		"-stacksize"
+		"-stacksize",
+		"-compile"
 	};
 
 	vm::assembler::AssemblerSettings assemblerSettings;
 	vm::executor::ExecutorSettings executorSettings;
+	compiler::CompilerSettings compilerSettings;
 
 	// Dummy Variables
 	uint uInt = 0;
@@ -61,21 +63,21 @@ int main(int argc, const char* args[]) {
 				break;
 
 			case 3: // -debug
-				assemblerSettings.flags.setFlags(vm::FLAG_DEBUG);
-				executorSettings.flags.setFlags(vm::FLAG_DEBUG);
+				assemblerSettings.flags.setFlags(FLAG_DEBUG);
+				executorSettings.flags.setFlags(FLAG_DEBUG);
 				break;
 
 			case 4: // -nodebug
-				assemblerSettings.flags.unsetFlags(vm::FLAG_DEBUG);
-				executorSettings.flags.unsetFlags(vm::FLAG_DEBUG);
+				assemblerSettings.flags.unsetFlags(FLAG_DEBUG);
+				executorSettings.flags.unsetFlags(FLAG_DEBUG);
 				break;
 
 			case 5: // -profile
-				executorSettings.flags.setFlags(vm::FLAG_PROFILE);
+				executorSettings.flags.setFlags(FLAG_PROFILE);
 				break;
 
 			case 6: // -noprofile
-				executorSettings.flags.unsetFlags(vm::FLAG_PROFILE);
+				executorSettings.flags.unsetFlags(FLAG_PROFILE);
 				break;
 
 			case 7: // -stacksize
@@ -87,6 +89,16 @@ int main(int argc, const char* args[]) {
 					return 1;
 				} else {
 					executorSettings.stackSize = uInt;
+				}
+				break;
+
+			case 8: // -compile
+				if (argc - i < 3) {
+					cout << IO_ERR "Not enough arguments for compiler" IO_NORM IO_END;
+					return 1;
+				} else {
+					if (compiler::compile(args[i + 1], args[i + 2], compilerSettings)) return 1;
+					i += 2;
 				}
 				break;
 		}

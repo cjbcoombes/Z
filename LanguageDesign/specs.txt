@@ -1,0 +1,34 @@
+Types:
+int
+float
+char
+
+Compiler Only:
+type
+typed identifier
+identifier
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Operator Precedence:
+
+. (type-identifier)
+*, /, %
++, -
+
+: (function definition)
+= (assignment)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Operators:
+
+(type) . (identifier)							Typed Identifier: declares an identifier with a given type
+
+(expr: float) * (expr: float)					Multiply
+(expr: int) * (expr: int)						Multiply
+(expr: char) * (expr: char)						Multiply
+
+(list: typed identifier) : (type) (expr)		Define function with typed identifiers as parameters, type as the return type, and expr as the body
+
+(identifier, typed identifier) = (expr)			Set the value of the identifier to the expr. Expr must have matching or implicitly convertible type

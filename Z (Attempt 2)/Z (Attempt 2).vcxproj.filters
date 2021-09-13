@@ -10,6 +10,12 @@
     <Filter Include="AssemblyExamples">
       <UniqueIdentifier>{2e244fc7-cf2f-4346-b933-58a1fe87c70b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compiler">
+      <UniqueIdentifier>{b6aabb98-b5c9-4cc8-93dd-1861794b5b02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CompilerExamples">
+      <UniqueIdentifier>{c32e0f37-4fea-4cee-a791-402228f5fca0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -27,6 +33,9 @@
     <ClCompile Include="VM\executor.cpp">
       <Filter>VM</Filter>
     </ClCompile>
+    <ClCompile Include="Compiler\compiler.cpp">
+      <Filter>Compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VM\vm.h">
@@ -43,6 +52,15 @@
     </ClInclude>
     <ClInclude Include="VM\register.h">
       <Filter>VM</Filter>
+    </ClInclude>
+    <ClInclude Include="VM\assembler.h">
+      <Filter>VM</Filter>
+    </ClInclude>
+    <ClInclude Include="VM\executor.h">
+      <Filter>VM</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler\compiler.h">
+      <Filter>Compiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -82,6 +100,12 @@
     </None>
     <None Include="AssemblyExamples\babylonian_sqrt.eze">
       <Filter>AssemblyExamples</Filter>
+    </None>
+    <None Include="CompilerExamples\example1.eze">
+      <Filter>CompilerExamples</Filter>
+    </None>
+    <None Include="CompilerExamples\example1.z">
+      <Filter>CompilerExamples</Filter>
     </None>
   </ItemGroup>
 </Project>

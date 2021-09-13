@@ -64,3 +64,47 @@ typedef unsigned int uint;
 // int is the return (0 if normal, non-0 if error)
 int parseUInt(const char* str, uint& out);
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Types
+namespace types {
+	// 32-bit word: addresses, integers
+	typedef int32_t word_t;
+	// 8-bit byte: register IDs, opcode IDs, chars
+	typedef int8_t byte_t;
+
+	// Opcode ID: byte
+	typedef uint8_t opcode_t;
+	// Register ID: byte
+	typedef uint8_t reg_t;
+
+	// Integer: word
+	typedef int32_t int_t;
+	typedef float float_t;
+	// Char: byte
+	typedef int8_t char_t;
+	// Bool: byte
+	typedef int8_t bool_t;
+
+	union WordVal {
+		word_t word;
+
+		int_t int_;
+		float_t float_;
+	};
+
+	union ByteVal {
+		byte_t byte;
+
+		char_t char_;
+		bool_t bool_;
+	};
+
+	static_assert(sizeof(std::intptr_t) == sizeof(word_t), "No workaround for non-word-size (32-bit) pointers");
+	static_assert(sizeof(float) == sizeof(word_t), "No workaround for non-word-size (32-bit) floats");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Flags
+constexpr int FLAG_DEBUG = 1;
+constexpr int FLAG_PROFILE = 2;
+
