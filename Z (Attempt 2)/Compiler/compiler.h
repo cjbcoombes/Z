@@ -12,7 +12,7 @@ namespace compiler {
 	enum class TokenType {
 		IDENTIFIER,
 		PRIMITIVE_TYPE,
-		// Single-char Tokens
+		// Token1s
 		TILDE,
 		BTICK,
 		EXPT,
@@ -45,17 +45,51 @@ namespace compiler {
 		RIGHT_CURLY,
 		LEFT_ANGLE,
 		RIGHT_ANGLE,
+		// Token2s
+		PLUS_EQUALS,
+		DASH_EQUALS,
+		STAR_EQUALS,
+		SLASH_EQUALS,
+		PCT_EQUALS,
+		EQ_EQUALS,
+		LEFT_ANGLE_EQUALS,
+		RIGHT_ANGLE_EQUALS,
+		PLUS_PLUS,
+		DASH_DASH,
+		SLASH_SLASH,
+		SLASH_STAR,
+		STAR_SLASH,
 		// Other stuff
 		RETURN
 	};
 
-	constexpr int firstSingleCharToken = static_cast<int>(TokenType::TILDE);
-	constexpr char singleCharTokens[] = {
-		'~', '`',  '!', '#', '$', '%',  '^', '&', '*', '_', '-', '+', '=',
+	// token1 means a single-char token
+	constexpr int firstToken1 = static_cast<int>(TokenType::TILDE);
+	constexpr char token1s[] = {
+		'~', '`',  '!', '@', '#', '$', '%',  '^', '&', '*', '_', '-', '+', '=',
 		'|', '\\', ':', ';', '"', '\'', ',', '.', '?', '/',
 		'(', ')', '[', ']', '{', '}', '<', '>'
 	};
-	constexpr int numSingleCharTokens = ARR_LEN(singleCharTokens);
+	constexpr int numToken1s = ARR_LEN(token1s);
+
+	constexpr int firstToken2 = static_cast<int>(TokenType::PLUS_EQUALS);
+	constexpr std::pair<TokenType, char> token2s[] = {
+		{ TokenType::PLUS, '=' },
+		{ TokenType::DASH, '=' },
+		{ TokenType::STAR, '=' },
+		{ TokenType::SLASH, '=' },
+		{ TokenType::PCT, '=' },
+		{ TokenType::EQUALS, '=' },
+		{ TokenType::LEFT_ANGLE, '=' },
+		{ TokenType::RIGHT_ANGLE, '=' },
+		{ TokenType::PLUS, '+' },
+		{ TokenType::DASH, '-' },
+		{ TokenType::SLASH, '/' },
+		{ TokenType::SLASH, '*' },
+		{ TokenType::STAR, '/' }
+	};
+	constexpr int numToken2s = ARR_LEN(token2s);
+
 
 	enum class PrimitiveType {
 		INT,
@@ -63,6 +97,13 @@ namespace compiler {
 		CHAR,
 		BOOL
 	};
+	constexpr const char* const primTypes[] = {
+		"int",
+		"float",
+		"bool",
+		"char"
+	};
+	constexpr int numPrimTypes = ARR_LEN(primTypes);
 	
 	struct Token {
 		Token(const Token&) = delete;
@@ -91,6 +132,7 @@ namespace compiler {
 
 		Token(TokenType typeIn, int lineIn, int columnIn) : type(typeIn), hasStr(false), str(nullptr), line(lineIn), column(columnIn) {}
 		Token(TokenType typeIn, int lineIn, int columnIn, std::string* strIn) : type(typeIn), hasStr(true), str(strIn), line(lineIn), column(columnIn) {}
+		Token(TokenType typeIn, int lineIn, int columnIn, PrimitiveType primTypeIn) : type(typeIn), hasStr(true), primType(primTypeIn), line(lineIn), column(columnIn) {}
 	};
 	
 	class TokenList : public std::vector<Token> {

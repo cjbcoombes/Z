@@ -61,10 +61,10 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 	bool isStr = false;
 	bool isEscaped = false;
 
-	std::string* tempStrPtr = nullptr;
-
 	int i;
-	int singleCharTokenIndex = -1;
+	int token1Index = -1;
+	int token2Index = -1;
+	int primType = -1;
 
 	// Da big loop
 	while (!end) {
@@ -130,11 +130,13 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 				continue;
 			}
 
+			// Redundant?
 			if (strlen == 1 && str[0] == '/' && c == '/') {
 				isComment = true;
 				continue;
 			}
 
+			// Redundant?
 			if (strlen == 1 && str[0] == '/' && c == '*') {
 				isBlockComment = true;
 				strlen = 0;
@@ -142,28 +144,49 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 			}
 		}
 
-		singleCharTokenIndex = -1;
-		for (i = 0; i < numSingleCharTokens; i++) {
-			if (c == singleCharTokens[i]) {
-				singleCharTokenIndex = i;
+		if (token1Index >= 0) {
+			// Check for token2s
+			token2Index = -1;
+			for (i = 0; i < numToken2s; i++) {
+				if (c == token2s[i].second && token1Index == static_cast<int>(token2s[i].first)) {
+					token2Index = i + firstToken2;
+					break;
+				}
+			}
+
+			if (token2Index >= 0) {
+				if (token2Index == static_cast<int>(TokenType::SLASH_SLASH)) isComment = true;
+				if (token2Index == static_cast<int>(TokenType::SLASH_STAR)) isBlockComment = true;
+				else tokenList.emplace_back(static_cast<TokenType>(token2Index), line, column);
+				token1Index = -1;
+				strlen = 0;
+				continue;
+			} else {
+				tokenList.emplace_back(static_cast<TokenType>(token1Index), line, column);
+			}
+		}
+
+		token1Index = -1;
+		for (i = 0; i < numToken1s; i++) {
+			if (c == token1s[i]) {
+				token1Index = i + firstToken1;
 				break;
 			}
 		}
+
+
 		// At the end of a token:
-		if (singleCharTokenIndex >= 0 || c == ' ' || c == '\n' || c == '\t' || end) {
+		if (token1Index >= 0 || c == ' ' || c == '\n' || c == '\t' || end) {
 			if (strlen == 0) continue;
 			str[strlen] = '\0';
 
 			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-			//tempStrPtr = ;
-			tokenList.emplace_back(TokenType::IDENTIFIER, line, column, new std::string(str));
-			//tempStrPtr = nullptr;
-
-
-
-			if (singleCharTokenIndex >= 0) {
-				tokenList.emplace_back(static_cast<TokenType>(singleCharTokenIndex + firstSingleCharToken), line, column);
+			primType = stringMatchAt(str, primTypes, numPrimTypes);
+			if (primType >= 0) {
+				tokenList.emplace_back(TokenType::PRIMITIVE_TYPE, line, column, static_cast<PrimitiveType>(primType));
+			} else {
+				tokenList.emplace_back(TokenType::IDENTIFIER, line, column, new std::string(str));
 			}
 			strlen = 0;
 			continue;

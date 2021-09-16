@@ -2,6 +2,11 @@
 // that I think look good, which I will turn 
 // into a full-fledged syntax later
 
+// Goals: 
+// strict, loosely typed (well-defined implicit conversions)
+// memory-safe without a garbage collector
+// 
+
 // <...> for types
 // [...] for lists
 // {...} for blocks
@@ -11,6 +16,8 @@ int.x
 
 // Implicit type of add is <int.a, int.b: int>
 @.add1 = [int.a, int.b]: int {
+	b += a;
+	a--;
 	return a + b;
 }
 
