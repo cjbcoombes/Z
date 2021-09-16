@@ -31,13 +31,29 @@ bar = [fVal: 17.2, cVal: '*', iVal: -4]
 
 // The @ symbol means to implicitly assume the type
 // In this case <int.x, int.y: float>, the type of a function taking two integer values (named x and y), and returning a float
-@.func = <int.x, int.y: float>: {
+@.func = <int.x, int.y: float>.{
     x += y;
     y--;
     return x + y;// Implicit conversion to float
 }
 
+// Compatible type, different parameter names
+<int.a, int.b: float>.alt = func
 
+// Function calls consume a set with a type that matches the parameters. The set can be created using parameter names
+func[10, 7]
+func[y: 7, x: 10]
+
+// Equivalent, with different parameter names
+alt[10, 7]
+alt[b: 7, a: 10]
+
+// Functions can also be called with a variable as the set input
+<int, int>.input = [10, 7]
+// Technically valid (since function call consumes the next token)
+func input
+// But this looks better:
+func(input)
 ```
 
 
