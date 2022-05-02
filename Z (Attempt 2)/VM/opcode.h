@@ -85,11 +85,11 @@ namespace vm {
 			READ_C,
 			READ_STR,
 			//
-			// 
-			// 
 			R_PRNT_I,
 			R_PRNT_F,
 			PRNT_LN,
+			//
+			TIME,
 			// 
 			//
 			//
@@ -188,12 +188,12 @@ namespace vm {
 			//
 			"readc",
 			"readstr",
-			//
-			// 
 			// 
 			"rprnti",
 			"rprntf",
 			"prntln",
+			//
+			"time",
 			// 
 			//
 			//
@@ -299,11 +299,11 @@ namespace vm {
 			{2, 0, 0},	// READ_C
 			{1, 3, 0},	// READ_STR
 			//
-			// 
-			// Temp?
 			{1, 0, 0},	// R_PRNT_I
 			{1, 0, 0},	// R_PRNT_F
 			{0, 0, 0},	// PRNT_LN
+			//
+			{1, 0, 0},	// TIME
 			// 
 			// 
 			//

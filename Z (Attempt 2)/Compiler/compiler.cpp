@@ -48,7 +48,7 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 	tokenList.clear();
 
 	// String
-	char str[MAX_STR_SIZE];
+	char str[MAX_STR_SIZE + 1];
 	int strlen = 0;
 	char c = -1;
 	int line = 0;
@@ -59,12 +59,16 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 	bool isComment = false;
 	bool isBlockComment = false;
 	bool isStr = false;
+	bool isChar = false; // TODO!
 	bool isEscaped = false;
+	bool isNumber = false;
+	bool hasDecimal = false;
 
 	int i;
 	int token1Index = -1;
 	int token2Index = -1;
 	int primType = -1;
+	int keyword = -1;
 
 	// Da big loop
 	while (!end) {
@@ -97,6 +101,10 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 			} else {
 				if (c == '"') {
 					isStr = false;
+					str[strlen] = '\0';
+					tokenList.emplace_back(TokenType::STRING, line, column, new std::string(str));
+					token1Index = -1;
+					strlen = 0;
 					continue;
 				}
 
@@ -124,14 +132,23 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 				continue;
 			}
 
-			if (c == '"') {
-				isStr = true;
-				isEscaped = false;
-				continue;
+			if (isNumber) {
+				// TODO : else (quit number) and determining the base
+				if (strlen == 1 && str[0] == '0' && (c == 'x' || c == 'b')) {
+					str[strlen++] = c;
+					continue;
+				} if (('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '.' && !hasDecimal)) {
+					if (c == '.') hasDecimal = true;
+					str[strlen++] = c;
+					continue;
+				} else {
+
+					// Intentionally continue
+				}
 			}
 
 			// Redundant?
-			if (strlen == 1 && str[0] == '/' && c == '/') {
+			/*if (strlen == 1 && str[0] == '/' && c == '/') {
 				isComment = true;
 				continue;
 			}
@@ -141,7 +158,7 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 				isBlockComment = true;
 				strlen = 0;
 				continue;
-			}
+			}*/
 		}
 
 		if (token1Index >= 0) {
@@ -176,19 +193,39 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 
 
 		// At the end of a token:
-		if (token1Index >= 0 || c == ' ' || c == '\n' || c == '\t' || end) {
-			if (strlen == 0) continue;
-			str[strlen] = '\0';
+		if (token1Index >= 0 || c == ' ' || c == '\n' || c == '\t' || c == '"' || ('0' <= c && c <= '9') || isNumber || end) {
+			if (strlen != 0) {
+				str[strlen] = '\0';
 
-			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+				// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-			primType = stringMatchAt(str, primTypes, numPrimTypes);
-			if (primType >= 0) {
-				tokenList.emplace_back(TokenType::PRIMITIVE_TYPE, line, column, static_cast<PrimitiveType>(primType));
-			} else {
-				tokenList.emplace_back(TokenType::IDENTIFIER, line, column, new std::string(str));
+				if (isNumber) {
+					tokenList.emplace_back(TokenType::NUM_UNIDENTIFIED, line, column, new std::string(str));
+				} else {
+					primType = stringMatchAt(str, primTypes, numPrimTypes);
+					if (primType >= 0) {
+						tokenList.emplace_back(TokenType::PRIMITIVE_TYPE, line, column, static_cast<PrimitiveType>(primType));
+					} else {
+						keyword = stringMatchAt(str, keywords, numKeywords);
+						if (keyword >= 0) {
+							tokenList.emplace_back(static_cast<TokenType>(keyword + firstKeyword), line, column);
+						} else {
+							tokenList.emplace_back(TokenType::IDENTIFIER, line, column, new std::string(str));
+						}
+					}
+				}
 			}
+
+			isNumber = false;
 			strlen = 0;
+			if (c == '"') {
+				isStr = true;
+				isEscaped = false;
+			} else if ('0' <= c && c <= '9') {
+				isNumber = true;
+				hasDecimal = false;
+				str[strlen++] = c;
+			}
 			continue;
 		}
 
@@ -201,7 +238,8 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 
 	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
 		stream << ptr->line << "  " << ptr->column;
-		if (ptr->hasStr) stream << "  ID: " << *(ptr->str);
+		if (ptr->type == TokenType::NUM_UNIDENTIFIED) stream << "  #: " << *(ptr->str);
+		else if (ptr->hasStr) stream << "  ID: " << *(ptr->str);
 		else stream << "  Type: " << static_cast<int>(ptr->type);
 		stream << '\n';
 	}

@@ -11,7 +11,7 @@
 ; 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-globalw %N, 1000
+globalw %N, 1024
 globalw %ITERS, 10
 
 globalstr %SQOF "The square root of \c[92m"

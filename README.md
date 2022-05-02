@@ -26,6 +26,7 @@ bar[0]   // Accesses the same value as foo[0] did
 bar.iVal // Accesses the same value via it's name
 
 // The following have the same effect. One initializes in order, the other using the names of types
+// Implicit type is automatically applied. For more complex expressions, implicit type 'cascades' until it hits a defined type
 bar = [-4, 17.2, '*']
 bar = [fVal: 17.2, cVal: '*', iVal: -4]
 
@@ -34,6 +35,19 @@ bar = [fVal: 17.2, cVal: '*', iVal: -4]
 @.func = <int.x, int.y: float>.{
     x += y;
     y--;
+    x = (if y > 0 {
+        #12 // The hashtag is a return value from the if statement
+    } else {
+        #-71
+    })
+
+    y = if x > 0 {
+        if y > 0 {
+            ##-9    // Double hashtag is returning up a scope
+        } else {
+            ##21
+        }
+    }
     return x + y;// Implicit conversion to float
 }
 

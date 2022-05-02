@@ -1,3 +1,34 @@
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; 
+; Guessing Game
+; 
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+globalstr %S1 "Input a guess (0-100): "
+globalstr %S2 "That is too high"
+globalstr %S3 "That is too low"
+globalstr %S4 "Correct!"
+
+@RNG					; Stack: BP, IP, word seed
+	loadw W0, BP, 8		; seed
+	movw W2, 101		; modulus
+	movw W3, 37			; multiplier
+	movw W4, 2719		; offset
+	movw W5, 10			; iters
+
+	imod W0, W0, W2
+	@RNG_LOOP
+		imul W0, W0, W3
+		iadd W0, W0, W4
+		imod W0, W0, W2
+
+		idec W5
+		jmpnz @RNG_LOOP
+
+	loadw W1, BP, 4
+	rjmp W1
+
+
 @PARSE_NUM				; Stack: BP, IP, char* str, word base
 	loadw W1, BP, 8		; str
 	loadw W2, BP, 12	; base
@@ -27,21 +58,49 @@
 	rjmp W1
 
 @__START__
-movw W0, 0x100
-alloc W1, W0
-readstr W1, 0
-storew BP, 0, W1
-storew BP, 4, BP
-movw W0, 4
-iadd BP, BP, W0
-movw W0, @AFTER_PARSE_NUM
-storew BP, 4, W0
-storew BP, 8, W1
-movw W0, 10
-storew BP, 12, W0
-jmp @PARSE_NUM
-@AFTER_PARSE_NUM
-loadw BP, BP, 0
-rprntw W0
-loadw W1, BP, 0
-free W1
+time W2						; time in W2
+movw W0, @AFTER_RNG
+storew BP, 4, W0			; Pass return IP as argument
+storew BP, 8, W2			; Pass seed as argument
+jmp @RNG					; Call rnjesus
+@AFTER_RNG
+rmovw W2, W0				; random number in W2
+prntln
+
+movw W0, 0x100				; Size of input space
+alloc W1, W0				; Allocate input space
+
+@INPUT_LOOP
+	prntstr PP, %S1				; Ask for input
+	readstr W1, 0				; Read user input
+	storew BP, 0, W1			; Save input space address on stack
+	storew BP, 4, W2			; Save rng on stack
+	storew BP, 8, BP			; Save BP on stack
+	movw W0, 8
+	iadd BP, BP, W0				; Move BP by 4 to create new stack frame
+	movw W0, @AFTER_PARSE_NUM
+	storew BP, 4, W0			; Pass return IP as argument
+	storew BP, 8, W1			; Pass input space address as argument
+	movw W0, 10
+	storew BP, 12, W0			; Pass base (const 10) as argument
+	jmp @PARSE_NUM				; Call number parser
+	@AFTER_PARSE_NUM
+	loadw BP, BP, 0				; Return to stack frame
+	loadw W1, BP, 0				; Reload input space address
+	loadw W2, BP, 4				; Reload rng address
+	icmpeq W0, W2
+	jmpnz @END
+	icmpgt W0, W2
+	jmpz @TOO_SMALL
+	@TOO_BIG
+	prntstr PP, %S2
+	prntln
+	jmp @INPUT_LOOP
+	@TOO_SMALL
+	prntstr PP, %S3
+	prntln
+	jmp @INPUT_LOOP
+
+@END
+prntstr PP, %S4
+free W1						; Free input space

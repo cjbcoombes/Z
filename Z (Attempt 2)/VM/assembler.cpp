@@ -371,7 +371,7 @@ T vm::assembler::parseNumber(const char* str, int strlen, const int& line, const
 
 	if (strlen > 2 && str[0] == '0') {
 		char t = str[1];
-		if (t < '0' || t > '9') {
+		if ((t < '0' || t > '9') && t != '.') {
 			str += 2;
 			strlen -= 2;
 			switch (t) {

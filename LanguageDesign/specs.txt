@@ -16,8 +16,9 @@ Operator Precedence:
 *, /, %
 +, -
 
-: (function definition)
 = (assignment)
+
+{} (new stack frame)
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -29,6 +30,6 @@ Operators:
 (expr: int) * (expr: int)						Multiply
 (expr: char) * (expr: char)						Multiply
 
-(list: typed identifier) : (type) (expr)		Define function with typed identifiers as parameters, type as the return type, and expr as the body
+(function type) . { expr } 		Define function with typed identifiers as parameters, type as the return type, and expr as the body
 
 (identifier, typed identifier) = (expr)			Set the value of the identifier to the expr. Expr must have matching or implicitly convertible type

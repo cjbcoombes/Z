@@ -15,12 +15,8 @@
       "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\fibonacci_fast.azm\" \".\\AssemblyExamples\\fibonacci_fast.eze\""
     },
     {
-      "Id": "e3276e15-c0e2-47de-b640-2d55f0b98a7c",
-      "Command": "-debug -assemble \".\\AssemblyExamples\\example1.azm\" \".\\AssemblyExamples\\example1.eze\""
-    },
-    {
       "Id": "3d4598c8-3a99-41c7-82be-777f607aaa3f",
-      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\example1.azm\" \".\\AssemblyExamples\\example1.eze\""
+      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\guessing_game_wip.azm\" \".\\AssemblyExamples\\guessing_game_wip.eze\""
     }
   ]
 }

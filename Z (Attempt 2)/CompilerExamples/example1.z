@@ -1,39 +1,9 @@
-int.x
-<int>.y
-
-// Lists (not sure if I like the format for list length)
-<int 9>.a = [1, 4, 1, 5, 0, 0, 2, 3, 8]
-
-// Implicit support of tuples?
-<int.kappa, float>.y = [10, 3.1415];
-
-// parts of tuples can be named
-y.kappa++;
-
-// Implicit type of add is <int.a, int.b: int>
-@.add1 = [int.a, int.b]: int {
-	b += a;
-	a--;
-	return a + b;
+17.9 >= 0x44
+if (-0x13.7 && b) {
+	x = 0b11010110;
+} else {
+x = (-234 / 
+-0.8) * 
+0x.342 + 
+69 ;
 }
-
-/*
-
-This is a block
-comment!
-
-Yay?*/
-
-// Alternative add has a compatible type, but different referencable parameter names
-<int.firstNumber, int.secondNumber: int>.add2 = add1
-
-// Alternative add has a compatible type, but no referencable parameter names
-<int, int: int>.add3 = add1
-
-add1[x, 10]
-
-add3[x, 10]
-
-add1[a = x, b = 10]
-
-add2[secondNumber = 10, firstNumber = x]

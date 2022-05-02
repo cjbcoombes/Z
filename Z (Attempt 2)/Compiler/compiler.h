@@ -12,6 +12,8 @@ namespace compiler {
 	enum class TokenType {
 		IDENTIFIER,
 		PRIMITIVE_TYPE,
+		STRING,
+		CHAR,
 		// Token1s
 		TILDE,
 		BTICK,
@@ -60,7 +62,14 @@ namespace compiler {
 		SLASH_STAR,
 		STAR_SLASH,
 		// Other stuff
-		RETURN
+		RETURN,
+		WHILE,
+		FOR,
+		IF,
+		ELSE,
+		ELIF,
+		// Nums
+		NUM_UNIDENTIFIED
 	};
 
 	// token1 means a single-char token
@@ -90,7 +99,6 @@ namespace compiler {
 	};
 	constexpr int numToken2s = ARR_LEN(token2s);
 
-
 	enum class PrimitiveType {
 		INT,
 		FLOAT,
@@ -104,12 +112,23 @@ namespace compiler {
 		"char"
 	};
 	constexpr int numPrimTypes = ARR_LEN(primTypes);
-	
-	struct Token {
-		Token(const Token&) = delete;
-		Token& operator=(const Token&) = delete;
-		Token(Token&&) = default;
-		Token& operator=(Token&&) = default;
+
+	constexpr int firstKeyword = static_cast<int>(TokenType::RETURN);
+	constexpr const char* const keywords[] = {
+		"return",
+		"while",
+		"for",
+		"if",
+		"else",
+		"elif"
+	};
+	constexpr int numKeywords = ARR_LEN(keywords);
+
+	struct NoDestructToken {
+		NoDestructToken(const NoDestructToken&) = delete;
+		NoDestructToken& operator=(const NoDestructToken&) = delete;
+		NoDestructToken(NoDestructToken&&) = default;
+		NoDestructToken& operator=(NoDestructToken&&) = default;
 
 		const TokenType type;
 		const bool hasStr;
@@ -130,12 +149,12 @@ namespace compiler {
 			std::string* str;
 		};
 
-		Token(TokenType typeIn, int lineIn, int columnIn) : type(typeIn), hasStr(false), str(nullptr), line(lineIn), column(columnIn) {}
-		Token(TokenType typeIn, int lineIn, int columnIn, std::string* strIn) : type(typeIn), hasStr(true), str(strIn), line(lineIn), column(columnIn) {}
-		Token(TokenType typeIn, int lineIn, int columnIn, PrimitiveType primTypeIn) : type(typeIn), hasStr(true), primType(primTypeIn), line(lineIn), column(columnIn) {}
+		NoDestructToken(TokenType typeIn, int lineIn, int columnIn) : type(typeIn), hasStr(false), str(nullptr), line(lineIn), column(columnIn) {}
+		NoDestructToken(TokenType typeIn, int lineIn, int columnIn, std::string* strIn) : type(typeIn), hasStr(true), str(strIn), line(lineIn), column(columnIn) {}
+		NoDestructToken(TokenType typeIn, int lineIn, int columnIn, PrimitiveType primTypeIn) : type(typeIn), hasStr(true), primType(primTypeIn), line(lineIn), column(columnIn) {}
 	};
 	
-	class TokenList : public std::vector<Token> {
+	class TokenList : public std::vector<NoDestructToken> {
 	public:
 		~TokenList() {
 			for (auto ptr = begin(); ptr < end(); ptr++) {
@@ -192,4 +211,5 @@ namespace compiler {
 	int compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& settings);
 	int compile_(std::iostream& inputFile, std::iostream& outputFile, CompilerSettings& settings, std::ostream& stream);
 	int tokenize(TokenList& tokenList, std::iostream& file, std::ostream& stream);
+	int parseNumber(NoDestructToken& token);
 }

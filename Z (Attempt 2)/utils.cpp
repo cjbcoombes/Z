@@ -6,7 +6,7 @@
 bool stringMatch(const char* const& match, const char* const strings[], const int& len) {
 	int i = 0;
 	int j = 0;
-	
+
 	for (; i < len; i++) {
 		j = 0;
 		while (true) {
@@ -63,14 +63,12 @@ void Flags::toggleFlags(const int& flags) {
 int parseUInt(const char* str, uint& out) {
 	uint base = 10;
 
-	int strlen = 0;
-	while (str[strlen] != '\0') strlen++;
-
-	if (strlen > 2 && str[0] == '0') {
+	if (str[0] == '\0') {
+		return 1;
+	} else if (str[0] == '0') {
 		char t = str[1];
 		if (t < '0' || t > '9') {
 			str += 2;
-			strlen -= 2;
 			switch (t) {
 				case 'x':
 					base = 16;
@@ -88,30 +86,25 @@ int parseUInt(const char* str, uint& out) {
 		}
 	}
 
-	uint place = 1;
 	out = 0;
 	char c;
-	str += strlen - 1;
-	while (strlen > 0) {
-		c = *str;
+	while ((c = *str) != '\0') {
+		out *= base;
 
 		if ('0' <= c && c <= '9') {
-			if (c - '0' >= base) return 2;
-			out += place * (c - '0');
+			if (c - '0' >= base) return 1;
+			out += c - '0';
 		} else if ('A' <= c && c <= 'Z') {
-			if (c - 'A' + 10 >= base) return 2;
-			out += place * (c - 'A' + 10);
+			if (c - 'A' + 10 >= base) return 1;
+			out += c - 'A' + 10;
 		} else if ('a' <= c && c <= 'z') {
-			if (c - 'a' + 10 >= base) return 2;
-			out += place * (c - 'a' + 10);
+			if (c - 'a' + 10 >= base) return 1;
+			out += c - 'a' + 10;
 		} else {
-			return 3;
+			return 1;
 		}
 
-		place *= base;
-
-		strlen--;
-		str--;
+		str++;
 	}
 
 	return 0;

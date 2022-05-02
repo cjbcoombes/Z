@@ -527,6 +527,11 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 				streamOut << '\n';
 				break;
 
+			case TIME:
+				program.read<reg_t>(&rid1);
+				wordReg[rid1].int_ = std::time(nullptr);
+				break;
+
 			default:
 				throw ExecutorException(ExecutorException::UNKNOWN_OPCODE, program.ip - program.start);
 				break;

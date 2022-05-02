@@ -107,5 +107,8 @@
     <None Include="CompilerExamples\example1.z">
       <Filter>CompilerExamples</Filter>
     </None>
+    <None Include="CompilerExamples\fibonacci.z">
+      <Filter>CompilerExamples</Filter>
+    </None>
   </ItemGroup>
 </Project>
