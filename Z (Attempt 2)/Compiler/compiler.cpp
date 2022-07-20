@@ -133,11 +133,10 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 			}
 
 			if (isNumber) {
-				// TODO : else (quit number) and determining the base
 				if (strlen == 1 && str[0] == '0' && (c == 'x' || c == 'b')) {
 					str[strlen++] = c;
 					continue;
-				} if (('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '.' && !hasDecimal)) {
+				} else if (('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '.' && !hasDecimal)) {
 					if (c == '.') hasDecimal = true;
 					str[strlen++] = c;
 					continue;
@@ -201,6 +200,7 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 
 				if (isNumber) {
 					tokenList.emplace_back(TokenType::NUM_UNIDENTIFIED, line, column, new std::string(str));
+					parseNumber(tokenList.back());
 				} else {
 					primType = stringMatchAt(str, primTypes, numPrimTypes);
 					if (primType >= 0) {
@@ -239,10 +239,107 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
 		stream << ptr->line << "  " << ptr->column;
 		if (ptr->type == TokenType::NUM_UNIDENTIFIED) stream << "  #: " << *(ptr->str);
+		else if (ptr->type == TokenType::NUM_INT) stream << "  Int: " << (ptr->int_);
+		else if (ptr->type == TokenType::NUM_FLOAT) stream << "  Float: " << (ptr->float_);
+		else if (ptr->type == TokenType::STRING) stream << "  String: " << *(ptr->str);
 		else if (ptr->hasStr) stream << "  ID: " << *(ptr->str);
 		else stream << "  Type: " << static_cast<int>(ptr->type);
 		stream << '\n';
 	}
+
+	return 0;
+}
+
+int compiler::parseNumber(NoDestructToken& token) {
+	if (token.type != TokenType::NUM_UNIDENTIFIED) return 1;
+	const char* str = (*(token.str)).c_str();
+
+	int_t base = 10;
+
+	if (str[0] == '\0') {
+		return 1;
+	} else if (str[0] == '0') {
+		char t = str[1];
+		if (t < '0' || t > '9') {
+			str += 2;
+			switch (t) {
+				case 'x':
+					base = 16;
+					break;
+
+				case 'b':
+					base = 2;
+					break;
+
+				case '.':
+					str--;
+					break;
+
+				case 'd':break;
+
+				default:
+					return 1;
+			}
+		}
+	}
+
+	int_t int_ = 0;
+	float_t float_ = 0;
+	float_t factor = 1;
+	char c;
+	while ((c = *str) != '\0') {
+		if (c == '.') {
+			float_ = int_;
+			str++;
+			while ((c = *str) != '\0') {
+				factor *= base;
+
+				if ('0' <= c && c <= '9') {
+					if (c - '0' >= base) return 1;
+					float_ += (c - '0') / factor;
+				} else if ('A' <= c && c <= 'Z') {
+					if (c - 'A' + 10 >= base) return 1;
+					float_ += (c - 'A' + 10) / factor;
+				} else if ('a' <= c && c <= 'z') {
+					if (c - 'a' + 10 >= base) return 1;
+					float_ += (c - 'a' + 10) / factor;
+				} else {
+					return 1;
+				}
+
+				str++;
+			}
+
+			delete token.str;
+			token.hasStr = false;
+			token.float_ = float_;
+			token.type = TokenType::NUM_FLOAT;
+
+			return 0;
+		}
+
+		int_ *= base;
+
+		if ('0' <= c && c <= '9') {
+			if (c - '0' >= base) return 1;
+			int_ += c - '0';
+		} else if ('A' <= c && c <= 'Z') {
+			if (c - 'A' + 10 >= base) return 1;
+			int_ += c - 'A' + 10;
+		} else if ('a' <= c && c <= 'z') {
+			if (c - 'a' + 10 >= base) return 1;
+			int_ += c - 'a' + 10;
+		} else {
+			return 1;
+		}
+
+		str++;
+	}
+
+	delete token.str;
+	token.hasStr = false;
+	token.int_ = int_;
+	token.type = TokenType::NUM_INT;
 
 	return 0;
 }

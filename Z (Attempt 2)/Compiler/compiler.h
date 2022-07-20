@@ -68,8 +68,12 @@ namespace compiler {
 		IF,
 		ELSE,
 		ELIF,
+		AND,
+		OR,
 		// Nums
-		NUM_UNIDENTIFIED
+		NUM_UNIDENTIFIED,
+		NUM_INT,
+		NUM_FLOAT
 	};
 
 	// token1 means a single-char token
@@ -120,7 +124,9 @@ namespace compiler {
 		"for",
 		"if",
 		"else",
-		"elif"
+		"elif",
+		"and",
+		"or"
 	};
 	constexpr int numKeywords = ARR_LEN(keywords);
 
@@ -130,8 +136,8 @@ namespace compiler {
 		NoDestructToken(NoDestructToken&&) = default;
 		NoDestructToken& operator=(NoDestructToken&&) = default;
 
-		const TokenType type;
-		const bool hasStr;
+		TokenType type;
+		bool hasStr;
 		const int line;
 		const int column;
 
@@ -176,11 +182,13 @@ namespace compiler {
 	class CompilerException : public std::exception {
 	public:
 		enum ErrorType {
-			STRING_TOO_LONG
+			STRING_TOO_LONG,
+			INVALID_NUMBER
 		};
 
 		static constexpr const char* const errorStrings[] = {
-			"String too long"
+			"String too long",
+			"Invalid number"
 		};
 
 		const ErrorType eType;
