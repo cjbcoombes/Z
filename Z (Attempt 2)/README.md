@@ -80,10 +80,11 @@ Code    | Instruction   | Arguments                 | Equation                  
 ---     | ---           | ---                       | ---                            | ---
 0x00    | nop           | N/A                       | N/A                            | Nothing
 0x01    | halt          | N/A                       | N/A                            | Halts the program
-0x??    | strprnt       | [reg1]                    | N/A                            | Prints the null-terminated string starting at the address in [reg1]
-0x??    | rprntw        | [reg1]                    | N/A                            | Prints the word value of [reg1]
-0x??    | lnprnt        | N/A                       | N/A                            | Prints a newline character
-0x??    | mov           | [reg1], [reg2]            | [reg1] = [reg2]                | Copies [reg2] to [reg1]
+0x??    | break         | N/A                       | N/A                            | Triggers a breakpoint in Visual Studio for when I'm debugging
+0x??    | alloc         | [reg1], [reg2]            | N/A                            | Allocates memory on the heap using C++ "new". The # of bytes is the integer in [reg2], and the resulting address is stored in [reg1]
+0x??    | free          | [reg1]                    | N/A                            | Frees the heap memory at the address in [reg1] using C++ "delete"
+0x??    | rmovw         | [reg1], [reg2]            | [reg1] = [reg2]                | Copies the word from [reg2] to [reg1]
+0x??    | rmovb         | [reg1], [reg2]            | [reg1] = [reg2]                | Copies the byte from [reg2] to [reg1]
 0x??    | movw          | [reg1], [word]            | [reg1] = [word]                | Puts the word value [word] into [reg1]
 0x??    | movb          | [reg1], [byte]            | [reg1] = [byte]                | Puts the byte value [byte] into [reg1]
 0x??    | loadw         | [reg1], [reg2], [off]     | [reg1] = {[reg2] + [off]}      | Load the word at address [reg2] + [off] into [reg1] 
@@ -93,6 +94,9 @@ Code    | Instruction   | Arguments                 | Equation                  
 0x??    | jmp           | [label]                   | N/A                            | Jump to [label]
 0x??    | jmpz          | [label]                   | N/A                            | Jump to [label] if the zero flag is set
 0x??    | jmpnz         | [label]                   | N/A                            | Jump to [label] if the zero flag is not set
+0x??    | jmp           | [reg1]                    | N/A                            | Jump to the address in [reg1]
+0x??    | jmpz          | [reg1]                    | N/A                            | Jump to the address in [reg1] if the zero flag is set
+0x??    | jmpnz         | [reg1]                    | N/A                            | Jump to the address in [reg1] if the zero flag is not set
 0x??    | iflag     (F) | [reg1]                    | N/A                            | Sets the flags based on the integer value in [reg1]
 0x??    | icmpeq    (F) | [reg1], [reg2]            | [reg2] == [reg3]               | Checks if the integers in [reg2] and [reg3] are equal, sets the flags according to the boolean result
 0x??    | icmpne    (F) | [reg1], [reg2]            | [reg2] != [reg3]               | Checks if the integers in [reg2] and [reg3] are not equal, sets the flags according to the boolean result
@@ -107,6 +111,8 @@ Code    | Instruction   | Arguments                 | Equation                  
 0x??    | imul      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Multiplies the values from [reg2] and [reg3] into [reg1] as integers
 0x??    | idiv      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Divides the value in [reg2] by the value in [reg3] into [reg1] as integers. Throws divide by zero error if the value in [reg3] is zero.
 0x??    | imod      (F) | [reg1], [reg2], [reg3]    | [reg1] = [reg2] + [reg3]       | Puts value from [reg2] modulo the value in [reg3] into [reg1] as integers. Throws divide by zero error if the value in [reg3] is zero.
+0x??    | itoc          | [reg1], [reg2]            | [reg1] = [reg2]                | Casts the integer value from [reg1] to a char and puts it in [reg2]
+0x??    | itof          | [reg1], [reg2]            | [reg1] = [reg2]                | Casts the integer value from [reg1] to a float and puts it in [reg2]
 N/A     | N/A           | N/A                       | N/A                            | Separates global and non-global opcodes. The below opcodes must come before all others in a program, and are used to define globals
 N/A     | globalw       | [var], [word]             | [var] = [word]                 | Sets global [var] to [word]
 N/A     | globalb       | [var], [byte]             | [var] = [byte]                 | Sets global [var] to [byte]
