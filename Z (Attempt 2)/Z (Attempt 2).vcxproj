@@ -27,6 +27,7 @@
     <ClCompile Include="VM\vm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Compiler\ast.h" />
     <ClInclude Include="Compiler\compiler.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="utils.h" />

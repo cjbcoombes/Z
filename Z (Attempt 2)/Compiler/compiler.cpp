@@ -37,6 +37,10 @@ int compiler::compile_(std::iostream& inputFile, std::iostream& outputFile, Comp
 
 	tokenize(tokenList, inputFile, stream);
 
+	AST::Tree tree;
+
+	constructAST(tree, tokenList, stream);
+
 	return 0;
 }
 
@@ -200,7 +204,9 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 
 				if (isNumber) {
 					tokenList.emplace_back(TokenType::NUM_UNIDENTIFIED, line, column, new std::string(str));
-					parseNumber(tokenList.back());
+					if (parseNumber(tokenList.back())) {
+						throw CompilerException(CompilerException::INVALID_NUMBER, line, column);
+					}
 				} else {
 					primType = stringMatchAt(str, primTypes, numPrimTypes);
 					if (primType >= 0) {
@@ -236,16 +242,18 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 		str[strlen++] = c;
 	}
 
+	///* Print Tokens
 	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
-		stream << ptr->line << "  " << ptr->column;
-		if (ptr->type == TokenType::NUM_UNIDENTIFIED) stream << "  #: " << *(ptr->str);
-		else if (ptr->type == TokenType::NUM_INT) stream << "  Int: " << (ptr->int_);
-		else if (ptr->type == TokenType::NUM_FLOAT) stream << "  Float: " << (ptr->float_);
-		else if (ptr->type == TokenType::STRING) stream << "  String: " << *(ptr->str);
-		else if (ptr->hasStr) stream << "  ID: " << *(ptr->str);
-		else stream << "  Type: " << static_cast<int>(ptr->type);
+		stream << std::setw(3) << ptr->line << "  " << std::setw(3) << ptr->column;
+		if (ptr->type == TokenType::NUM_UNIDENTIFIED) stream << "         #: " << *(ptr->str);
+		else if (ptr->type == TokenType::NUM_INT) stream << "       Int: " << (ptr->int_);
+		else if (ptr->type == TokenType::NUM_FLOAT) stream << "     Float: " << (ptr->float_);
+		else if (ptr->type == TokenType::STRING) stream << "    String: " << *(ptr->str);
+		else if (ptr->hasStr) stream << "        ID: " << *(ptr->str);
+		else stream << "            " << static_cast<int>(ptr->type);
 		stream << '\n';
 	}
+	/**/
 
 	return 0;
 }
@@ -272,6 +280,7 @@ int compiler::parseNumber(NoDestructToken& token) {
 					break;
 
 				case '.':
+				case '\0':
 					str--;
 					break;
 
@@ -340,6 +349,180 @@ int compiler::parseNumber(NoDestructToken& token) {
 	token.hasStr = false;
 	token.int_ = int_;
 	token.type = TokenType::NUM_INT;
+
+	return 0;
+}
+
+int compiler::constructAST(AST::Tree& tree, TokenList& tokenList, std::ostream& stream) {
+	using namespace AST;
+	NodeList nodeList;
+	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
+		nodeList.emplace_back(new NodeToken(ptr));
+	}
+
+	// First Pass: create nodes for tokens that should have their own node
+	// This includes NUMBERS, IDENTIFIERS, ... more (TODO)
+	for (auto ptr = nodeList.begin(); ptr != nodeList.end(); ptr++) {
+		// OK to cast since we know they're all NodeToken right now
+		NodeToken* origNode = static_cast<NodeToken*>(*ptr);
+		Node* newNode = nullptr;
+		TokenType type = origNode->token->type;
+
+		switch (type) {
+			case TokenType::NUM_INT:
+				newNode = new ExprInt(origNode->token->int_);
+				break;
+
+			case TokenType::NUM_FLOAT:
+				newNode = new ExprFloat(origNode->token->float_);
+				break;
+
+			case TokenType::IDENTIFIER:
+				// Ownership of string pointer is effectively transferred
+				newNode = new ExprIdentifier(origNode->token->str);
+				origNode->token->hasStr = false;
+				origNode->token->str = nullptr;
+				break;
+
+			case TokenType::TRUE:
+				newNode = new ExprBool(1);
+				break;
+
+			case TokenType::FALSE:
+				newNode = new ExprBool(0);
+				break;
+		}
+
+		if (newNode) {
+			delete origNode;
+			(*ptr) = newNode;
+		}
+	}
+
+	NodeList dummyList;
+
+	condenseAST(nodeList, dummyList, nodeList.begin(), NodeType::NONE);
+
+	nodeList.print(stream, 0);
+
+	return 0;
+}
+
+int compiler::condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::NodeList::iterator start, AST::NodeType type) {
+	using namespace AST;
+	// type will be NONE, PAREN_GROUP, SQUARE_GROUP, CURLY_GROUP
+
+	NodeList::iterator ptr = start;
+	NodeList::iterator pptr;
+	NodeParenGroup* parenGroup;
+	NodeSquareGroup* squareGroup;
+	NodeCurlyGroup* curlyGroup;
+
+	while (ptr != list.end()) {
+		if ((*ptr)->type == NodeType::TOKEN) {
+			switch (static_cast<NodeToken*>(*ptr)->token->type) {
+				case TokenType::LEFT_PAREN:
+					// ## Start of new recursion
+					// Start value is first INSIDE parens using std::next(ptr)
+					// Function will splice into the list
+					parenGroup = new NodeParenGroup();
+					condenseAST(list, parenGroup->nodeList, std::next(ptr), NodeType::PAREN_GROUP);
+					// We can assume list is now [..., (, ), ...]
+					// where the stuff that used to be between the parens is now in the group
+					// ptr still points to opening paren
+					list.insert(ptr, parenGroup);
+					delete (*ptr);
+					pptr = std::next(ptr);
+					delete (*pptr);
+					pptr++;
+					ptr = list.erase(ptr, pptr);
+					ptr--;
+					break;
+				case TokenType::LEFT_SQUARE:
+					squareGroup = new NodeSquareGroup();
+					condenseAST(list, squareGroup->nodeList, std::next(ptr), NodeType::SQUARE_GROUP);
+
+					list.insert(ptr, squareGroup);
+					delete (*ptr);
+					pptr = std::next(ptr);
+					delete (*pptr);
+					pptr++;
+					ptr = list.erase(ptr, pptr);
+					ptr--;
+					break;
+				case TokenType::LEFT_CURLY:
+					curlyGroup = new NodeCurlyGroup();
+					condenseAST(list, curlyGroup->nodeList, std::next(ptr), NodeType::CURLY_GROUP);
+
+					list.insert(ptr, curlyGroup);
+					delete (*ptr);
+					pptr = std::next(ptr);
+					delete (*pptr);
+					pptr++;
+					ptr = list.erase(ptr, pptr);
+					ptr--;
+					break;
+
+				case TokenType::RIGHT_PAREN:
+					if (type == NodeType::PAREN_GROUP) {
+						subList.splice(subList.begin(), list, start, ptr);
+						goto process;
+					} else {
+						throw CompilerException(CompilerException::INVALID_CLOSING_PAREN, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+					}
+					break;
+				case TokenType::RIGHT_SQUARE:
+					if (type == NodeType::SQUARE_GROUP) {
+						subList.splice(subList.begin(), list, start, ptr);
+						goto process;
+					} else {
+						throw CompilerException(CompilerException::INVALID_CLOSING_SQUARE, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+					}
+					break;
+				case TokenType::RIGHT_CURLY:
+					if (type == NodeType::CURLY_GROUP) {
+						subList.splice(subList.begin(), list, start, ptr);
+						goto process;
+					} else {
+						throw CompilerException(CompilerException::INVALID_CLOSING_CURLY, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+					}
+					break;
+			}
+		}
+		ptr++;
+	}
+
+	// Must have exited the loop normally so we can call this
+	if (type != NodeType::NONE) {
+		subList.splice(subList.begin(), list, start, ptr);
+		list.insert(ptr, new Node());
+	}
+
+process:
+	// Nothing yet
+
+	bool flag = false;
+	ExprBinop* binop;
+
+	// Pass 1: Multiplication and Division
+	for (ptr = subList.begin(); ptr != subList.end(); ptr++) {
+		switch ((*ptr)->type) {
+			case NodeType::TOKEN:
+				flag = false;
+				switch (static_cast<NodeToken*>(*ptr)->token->type) {
+					case TokenType::STAR:
+						flag = true;
+					case TokenType::SLASH:
+						if (ptr == subList.begin() || std::next(ptr) == subList.end() || !((*std::next(ptr))->isExpr) || !((*std::prev(ptr))->isExpr)) {
+							throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+						}
+						// TODO : Determine expression type and apply appropriate casting
+						binop = new ExprBinop(static_cast<Expr*>(*std::prev(ptr)), static_cast<Expr*>(*std::next(ptr)), flag ? OpType::MULT : OpType::DIV, ExprType::UNKNOWN);
+						break;
+				}
+				break;
+		}
+	}
 
 	return 0;
 }
