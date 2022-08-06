@@ -140,7 +140,7 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 				if (strlen == 1 && str[0] == '0' && (c == 'x' || c == 'b')) {
 					str[strlen++] = c;
 					continue;
-				} else if (('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '.' && !hasDecimal)) {
+				} else if (!end && ('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || (c == '.' && !hasDecimal)) {
 					if (c == '.') hasDecimal = true;
 					str[strlen++] = c;
 					continue;
@@ -403,7 +403,7 @@ int compiler::constructAST(AST::Tree& tree, TokenList& tokenList, std::ostream& 
 
 	condenseAST(nodeList, dummyList, nodeList.begin(), NodeType::NONE);
 
-	nodeList.print(stream, 0);
+	dummyList.print(stream, 0);
 
 	return 0;
 }
@@ -422,15 +422,16 @@ int compiler::condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::Node
 		if ((*ptr)->type == NodeType::TOKEN) {
 			switch (static_cast<NodeToken*>(*ptr)->token->type) {
 				case TokenType::LEFT_PAREN:
-					// ## Start of new recursion
-					// Start value is first INSIDE parens using std::next(ptr)
-					// Function will splice into the list
 					parenGroup = new NodeParenGroup();
 					condenseAST(list, parenGroup->nodeList, std::next(ptr), NodeType::PAREN_GROUP);
-					// We can assume list is now [..., (, ), ...]
-					// where the stuff that used to be between the parens is now in the group
-					// ptr still points to opening paren
-					list.insert(ptr, parenGroup);
+					
+					if (parenGroup->nodeList.size() == 1 && (*(parenGroup->nodeList.begin()))->isExpr) {
+						list.insert(ptr, *(parenGroup->nodeList.begin()));
+						(*(parenGroup->nodeList.begin())) = new Node();
+						delete parenGroup;
+					} else {
+						list.insert(ptr, parenGroup);
+					}
 					delete (*ptr);
 					pptr = std::next(ptr);
 					delete (*pptr);
@@ -492,15 +493,13 @@ int compiler::condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::Node
 		ptr++;
 	}
 
-	// Must have exited the loop normally so we can call this
+	// Must have exited the loop normally so we can call this (adds an artificial closing paren)
+	subList.splice(subList.begin(), list, start, ptr);
 	if (type != NodeType::NONE) {
-		subList.splice(subList.begin(), list, start, ptr);
 		list.insert(ptr, new Node());
 	}
 
 process:
-	// Nothing yet
-
 	bool flag = false;
 	ExprBinop* binop;
 
@@ -513,11 +512,41 @@ process:
 					case TokenType::STAR:
 						flag = true;
 					case TokenType::SLASH:
-						if (ptr == subList.begin() || std::next(ptr) == subList.end() || !((*std::next(ptr))->isExpr) || !((*std::prev(ptr))->isExpr)) {
+						pptr = std::next(ptr);
+						if (ptr == subList.begin() || pptr == subList.end() || !((*pptr)->isExpr) || !((*std::prev(ptr))->isExpr)) {
 							throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
 						}
+						//std::cout << "[" << (flag ? "*" : "/") << "]";
 						// TODO : Determine expression type and apply appropriate casting
-						binop = new ExprBinop(static_cast<Expr*>(*std::prev(ptr)), static_cast<Expr*>(*std::next(ptr)), flag ? OpType::MULT : OpType::DIV, ExprType::UNKNOWN);
+						binop = new ExprBinop(static_cast<Expr*>(*std::prev(ptr)), static_cast<Expr*>(*pptr), flag ? OpType::MULT : OpType::DIV, ExprType::UNKNOWN);
+						delete (*ptr);
+						ptr = subList.erase(std::prev(ptr), std::next(pptr));
+						ptr = subList.insert(ptr, binop);
+						break;
+				}
+				break;
+		}
+	}
+
+	// Pass 2: Addition and Subtraction
+	for (ptr = subList.begin(); ptr != subList.end(); ptr++) {
+		switch ((*ptr)->type) {
+			case NodeType::TOKEN:
+				flag = false;
+				switch (static_cast<NodeToken*>(*ptr)->token->type) {
+					case TokenType::PLUS:
+						flag = true;
+					case TokenType::DASH:
+						pptr = std::next(ptr);
+						if (ptr == subList.begin() || pptr == subList.end() || !((*pptr)->isExpr) || !((*std::prev(ptr))->isExpr)) {
+							throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+						}
+						//std::cout << "[" << (flag ? "+" : "-") << "]";
+						// TODO : Determine expression type and apply appropriate casting
+						binop = new ExprBinop(static_cast<Expr*>(*std::prev(ptr)), static_cast<Expr*>(*pptr), flag ? OpType::ADD : OpType::SUB, ExprType::UNKNOWN);
+						delete (*ptr);
+						ptr = subList.erase(std::prev(ptr), std::next(pptr));
+						ptr = subList.insert(ptr, binop);
 						break;
 				}
 				break;

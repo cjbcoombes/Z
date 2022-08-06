@@ -215,6 +215,13 @@ namespace compiler {
 			DIV
 		};
 
+		constexpr const char* const opTypeNames[] = {
+			"Add",
+			"Sub",
+			"Mult",
+			"Div"
+		};
+
 		//
 
 		struct ArithmeticBinopPattern {
@@ -397,10 +404,10 @@ namespace compiler {
 			}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Binop with result type " << exprTypeNames[static_cast<int>(evalType)] << static_cast<int>(opType) << '\n';
+				stream << std::string(indent, '\t') << "Binop " << opTypeNames[static_cast<int>(opType)] << " with result type " << exprTypeNames[static_cast<int>(evalType)] << '\n';
 				left->print(stream, indent + 1);
-				stream << std::string(indent + 1, '\t') << '\n';
-				left->print(stream, indent + 1);
+				stream << std::string(indent + 1, '\t') << "------\n";
+				right->print(stream, indent + 1);
 			}
 		};
 
