@@ -7,11 +7,13 @@
 namespace compiler {
 	using namespace types;
 
+	// Maximum number of characters in a string to be parsed
 	constexpr int MAX_STR_SIZE = 1024;
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Tokens
 
+	// An enum for the type of a token
 	enum class TokenType {
 		IDENTIFIER,
 		PRIMITIVE_TYPE,
@@ -65,6 +67,10 @@ namespace compiler {
 		SLASH_STAR,
 		STAR_SLASH,
 		// Other stuff
+		INT,
+		FLOAT,
+		BOOL,
+		CHAR_,
 		RETURN,
 		WHILE,
 		FOR,
@@ -81,7 +87,7 @@ namespace compiler {
 		NUM_FLOAT
 	};
 
-	// token1 means a single-char token
+	// Token1s are length-1 tokens
 	constexpr int firstToken1 = static_cast<int>(TokenType::TILDE);
 	constexpr char token1s[] = {
 		'~', '`',  '!', '@', '#', '$', '%',  '^', '&', '*', '_', '-', '+', '=',
@@ -90,6 +96,7 @@ namespace compiler {
 	};
 	constexpr int numToken1s = ARR_LEN(token1s);
 
+	// Token2s are length-2 tokens
 	constexpr int firstToken2 = static_cast<int>(TokenType::PLUS_EQUALS);
 	constexpr std::pair<TokenType, char> token2s[] = {
 		{ TokenType::PLUS, '=' },
@@ -108,22 +115,13 @@ namespace compiler {
 	};
 	constexpr int numToken2s = ARR_LEN(token2s);
 
-	enum class PrimitiveType {
-		INT,
-		FLOAT,
-		CHAR,
-		BOOL
-	};
-	constexpr const char* const primTypes[] = {
+	// Keywords are full strings that are matched exactly
+	constexpr int firstKeyword = static_cast<int>(TokenType::INT);
+	constexpr const char* const keywords[] = {
 		"int",
 		"float",
 		"bool",
-		"char"
-	};
-	constexpr int numPrimTypes = ARR_LEN(primTypes);
-
-	constexpr int firstKeyword = static_cast<int>(TokenType::RETURN);
-	constexpr const char* const keywords[] = {
+		"char",
 		"return",
 		"while",
 		"for",
@@ -137,6 +135,12 @@ namespace compiler {
 	};
 	constexpr int numKeywords = ARR_LEN(keywords);
 
+	// Struct that holds information about a token
+	/*	It's called "NoDestruct" because it shouldn't ever be deleted on its own.
+		Due to some issues with destructors and constructors being called when a vector
+		rearranges its memory, these should only be created as part of a TokenList and
+		should only be destroyed by the TokenList's destructor method.
+	*/
 	struct NoDestructToken {
 		NoDestructToken(const NoDestructToken&) = delete;
 		NoDestructToken& operator=(const NoDestructToken&) = delete;
@@ -145,9 +149,11 @@ namespace compiler {
 
 		TokenType type;
 		bool hasStr;
+		// The line and column are stored for printing error messages
 		const int line;
 		const int column;
 
+		// Holds the tokens' data, whatever that may be
 		union {
 			word_t word;
 			float_t float_;
@@ -157,18 +163,17 @@ namespace compiler {
 			char_t char_;
 			bool_t bool_;
 
-			PrimitiveType primType;
-
 			std::string* str;
 		};
 
 		NoDestructToken(TokenType typeIn, int lineIn, int columnIn) : type(typeIn), hasStr(false), str(nullptr), line(lineIn), column(columnIn) {}
 		NoDestructToken(TokenType typeIn, int lineIn, int columnIn, std::string* strIn) : type(typeIn), hasStr(true), str(strIn), line(lineIn), column(columnIn) {}
-		NoDestructToken(TokenType typeIn, int lineIn, int columnIn, PrimitiveType primTypeIn) : type(typeIn), hasStr(true), primType(primTypeIn), line(lineIn), column(columnIn) {}
 	};
-	
+
+	// A vector of NoDestructTokens with a custom destructor to manage the string pointers
 	class TokenList : public std::vector<NoDestructToken> {
 	public:
+		// Deletes its tokens' strings, if they exist, bnfore the tokens themselves are destroyed
 		~TokenList() {
 			for (auto ptr = begin(); ptr < end(); ptr++) {
 				if (ptr->hasStr) delete ptr->str;
@@ -178,8 +183,10 @@ namespace compiler {
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// AST
-	
+
+	// Abstract Syntax Tree
 	namespace AST {
+		// Types of AST nodes
 		enum class NodeType {
 			NONE,
 			TOKEN,
@@ -194,6 +201,7 @@ namespace compiler {
 			BINOP
 		};
 
+		// Types that an expression can evaluate to
 		enum class ExprType {
 			UNKNOWN,
 			INT,
@@ -201,6 +209,7 @@ namespace compiler {
 			BOOL
 		};
 
+		// Names of expression types (for printing to console)
 		constexpr const char* const exprTypeNames[] = {
 			"Unknown",
 			"Int",
@@ -208,6 +217,7 @@ namespace compiler {
 			"Bool"
 		};
 
+		// Types of operations
 		enum class OpType {
 			ADD,
 			SUB,
@@ -215,6 +225,7 @@ namespace compiler {
 			DIV
 		};
 
+		// Names of operation types (for printing to console)
 		constexpr const char* const opTypeNames[] = {
 			"Add",
 			"Sub",
@@ -224,6 +235,7 @@ namespace compiler {
 
 		//
 
+		// TODO : Rethink this?
 		struct ArithmeticBinopPattern {
 			ExprType left;
 			ExprType right;
@@ -238,8 +250,10 @@ namespace compiler {
 
 		//
 
+		// Generic AST node
 		struct Node {
 			const NodeType type;
+			// Used to check if it evaluates to an expression
 			bool isExpr;
 
 			Node() : type(NodeType::NONE), isExpr(false) {}
@@ -247,11 +261,18 @@ namespace compiler {
 			Node(AST::NodeType typeIn, bool isExprIn) : type(typeIn), isExpr(isExprIn) {}
 			virtual ~Node() {}
 
+			// Every type of node has a print to console functionality
 			virtual void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "Node: " << static_cast<int>(type) << '\n';
 			}
 		};
 
+		// A vector of pointers to nodes
+		/*	It's important that this is a vector of POINTERS. The ownership of a node pointer may
+			be transferred, for example it may start as part of the original node list but end up
+			as the right side of an addition expression. It is easier to transfor a pointer to the 
+			node than to have to copy the entire node.
+		*/
 		class NodeList : public std::list<Node*> {
 		public:
 			void print(std::ostream& stream, int indent) {
@@ -260,8 +281,8 @@ namespace compiler {
 				}
 			}
 
+			// Deletes the nodes that it holds the pointers to (those nodes have destructors that delete their children)
 			~NodeList() {
-				// Cleanup: delete nodes (nodes have destructors that delete their children)
 				for (auto ptr = begin(); ptr != end(); ptr++) {
 					delete (*ptr);
 				}
@@ -270,6 +291,7 @@ namespace compiler {
 
 		//
 
+		// A set of matching parentheses, with a list of all of the nodes contained within
 		struct NodeParenGroup : public Node {
 			NodeList nodeList;
 
@@ -282,6 +304,7 @@ namespace compiler {
 			}
 		};
 
+		// A set of matching square brackets, with a list of all of the nodes contained within
 		struct NodeSquareGroup : public Node {
 			NodeList nodeList;
 
@@ -294,6 +317,7 @@ namespace compiler {
 			}
 		};
 
+		// A set of matching curly brackets, with a list of all of the nodes contained within
 		struct NodeCurlyGroup : public Node {
 			NodeList nodeList;
 
@@ -308,24 +332,28 @@ namespace compiler {
 
 		//
 
+		// A subclass of node for anything that evaluates to an expression
 		struct Expr : public Node {
 			const ExprType evalType;
 
 			Expr(NodeType typeIn, ExprType evalTypeIn) : Node(typeIn, true), evalType(evalTypeIn) {}
 		};
 
+		// A subclass of node that acts as a wrapper for a token
 		struct NodeToken : public Node {
+			// Essentially a pointer to a token
 			TokenList::iterator token;
 
 			NodeToken(TokenList::iterator tokenIn) : Node(NodeType::TOKEN), token(tokenIn) {}
+			// Note that the Node does not destroy the Token. That's because all of the tokens are
+			// still destroyed normally by the TokenList that they are a part of
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "Token: " << static_cast<int>(token->type) << '\n';
 			}
 		};
 
-		//
-
+		// A raw integer node
 		struct ExprInt : public Expr {
 			int_t int_;
 
@@ -336,8 +364,7 @@ namespace compiler {
 			}
 		};
 
-		//
-
+		// A raw float node
 		struct ExprFloat : public Expr {
 			float_t float_;
 
@@ -348,8 +375,7 @@ namespace compiler {
 			}
 		};
 
-		//
-
+		// A raw bool node
 		struct ExprBool : public Expr {
 			bool_t bool_;
 
@@ -362,12 +388,14 @@ namespace compiler {
 
 		//
 
+		// An node representing an identifier
+		// TODO: At some point there'll be a dictionary of declared identifiers that this should refer to
+		// instead of holding its own data
 		struct ExprIdentifier : public Expr {
 			std::string* str;
 
 			ExprIdentifier(std::string* strIn) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN), str(strIn) {}
 			~ExprIdentifier() {
-				std::cout << "[String Deleted!]";
 				delete str;
 			}
 
@@ -378,6 +406,7 @@ namespace compiler {
 
 		//
 
+		// A node representing a type cast
 		struct ExprCast : public Expr {
 			Expr* source;
 
@@ -392,6 +421,7 @@ namespace compiler {
 			}
 		};
 
+		// A node representind a binary infix operation
 		struct ExprBinop : public Expr {
 			Expr* left;
 			Expr* right;
@@ -434,6 +464,9 @@ namespace compiler {
 			INVALID_CLOSING_PAREN,
 			INVALID_CLOSING_SQUARE,
 			INVALID_CLOSING_CURLY,
+			MISSING_CLOSING_PAREN,
+			MISSING_CLOSING_SQUARE,
+			MISSING_CLOSING_CURLY,
 			BINOP_MISSING_EXPRESSION,
 		};
 
@@ -443,6 +476,9 @@ namespace compiler {
 			"Invalid closing parenthesis",
 			"Invalid closing square bracket",
 			"Invalid closing curly bracket",
+			"Missing a closing parenthesis",
+			"Missing a closing square bracket",
+			"Missing a closing curly bracket",
 			"Binop is missing an expression on one or both sides"
 		};
 
