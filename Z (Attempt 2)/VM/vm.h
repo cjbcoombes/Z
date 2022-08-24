@@ -1,8 +1,6 @@
 #pragma once
 
 #include "..\utils.h"
-#include "opcode.h"
-#include "register.h"
 
 namespace vm {
 

@@ -30,11 +30,11 @@
     <ClInclude Include="Compiler\ast.h" />
     <ClInclude Include="Compiler\compiler.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="opcode.h" />
+    <ClInclude Include="register.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="VM\assembler.h" />
     <ClInclude Include="VM\executor.h" />
-    <ClInclude Include="VM\opcode.h" />
-    <ClInclude Include="VM\register.h" />
     <ClInclude Include="VM\vm.h" />
   </ItemGroup>
   <ItemGroup>

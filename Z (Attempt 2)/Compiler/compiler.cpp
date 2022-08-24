@@ -34,13 +34,21 @@ int compiler::compile_(std::iostream& inputFile, std::iostream& outputFile, Comp
 	// Flags/settings
 	const bool isDebug = compileSettings.flags.hasFlags(FLAG_DEBUG);
 
+	stream << "\nTokenization:\n";
+
 	// Tokenize
 	TokenList tokenList;
 	tokenize(tokenList, inputFile, stream);
 
+	stream << "\nAST:\n";
+
 	// Construct AST
-	AST::Tree tree;
-	constructAST(tree, tokenList, stream);
+	AST::NodeList ast;
+	constructAST(ast, tokenList, stream);
+
+	stream << "\nBytecode:\n";
+
+	makeBytecode(ast, outputFile, stream);
 
 	return 0;
 }
@@ -386,7 +394,7 @@ int compiler::parseNumber(NoDestructToken& token) {
 	return 0;
 }
 
-int compiler::constructAST(AST::Tree& tree, TokenList& tokenList, std::ostream& stream) {
+int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, std::ostream& stream) {
 	using namespace AST;
 	NodeList nodeList;
 	// The nodelist starts out filled with wrappers of all of the tokens
@@ -405,26 +413,28 @@ int compiler::constructAST(AST::Tree& tree, TokenList& tokenList, std::ostream& 
 		// Create appropriate nodes depending on the type (pretty self-explanatory)
 		switch (type) {
 			case TokenType::NUM_INT:
-				newNode = new ExprInt(origNode->token->int_);
+				newNode = new ExprInt(origNode);
 				break;
 
 			case TokenType::NUM_FLOAT:
-				newNode = new ExprFloat(origNode->token->float_);
+				newNode = new ExprFloat(origNode);
 				break;
 
 			case TokenType::IDENTIFIER:
 				// Ownership of string pointer is effectively transferred
-				newNode = new ExprIdentifier(origNode->token->str);
-				origNode->token->hasStr = false;
-				origNode->token->str = nullptr;
+				if (!(origNode->token->hasStr)) {
+					// How did this happen?
+					throw CompilerException(CompilerException::UNKNOWN, origNode->line, origNode->column);
+				}
+				newNode = new ExprIdentifier(origNode);
 				break;
 
 			case TokenType::TRUE:
-				newNode = new ExprBool(1);
+				newNode = new ExprBool(origNode, 1);
 				break;
 
 			case TokenType::FALSE:
-				newNode = new ExprBool(0);
+				newNode = new ExprBool(origNode, 0);
 				break;
 		}
 
@@ -435,9 +445,6 @@ int compiler::constructAST(AST::Tree& tree, TokenList& tokenList, std::ostream& 
 			(*ptr) = newNode;
 		}
 	}
-
-	// The node list that the AST output will be constructed into
-	NodeList outputList;
 
 	// Call the AST creator (this is a recursive function)
 	condenseAST(nodeList, outputList, nodeList.begin(), NodeType::NONE);
@@ -469,6 +476,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 			// Switch through some possible tokens
 			switch (static_cast<NodeToken*>(*ptr)->token->type) {
 				// Opening parenthesis
+				// TODO: Add the line and column to the paren group nodes
 				case TokenType::LEFT_PAREN:
 					// Create a new paren group
 					parenGroup = new NodeParenGroup();
@@ -480,7 +488,8 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// then insert the expression and delete the group
 					if (parenGroup->nodeList.size() == 1 && (*(parenGroup->nodeList.begin()))->isExpr) {
 						inputList.insert(ptr, *(parenGroup->nodeList.begin()));
-						(*(parenGroup->nodeList.begin())) = new Node();
+						// (*(parenGroup->nodeList.begin())) = new Node();
+						parenGroup->nodeList.erase(parenGroup->nodeList.begin());
 						delete parenGroup;
 					} else { // Otherwise just insert the group
 						inputList.insert(ptr, parenGroup);
@@ -538,7 +547,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 						outputList.splice(outputList.begin(), inputList, start, ptr);
 						goto process;
 					} else { // Otherwise there is an extra closing parenthesis and that's an error
-						throw CompilerException(CompilerException::INVALID_CLOSING_PAREN, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+						throw CompilerException(CompilerException::INVALID_CLOSING_PAREN, (*ptr)->line, (*ptr)->column);
 					}
 					break;
 
@@ -550,7 +559,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 						outputList.splice(outputList.begin(), inputList, start, ptr);
 						goto process;
 					} else { // Otherwise there is an extra closing bracket and that's an error
-						throw CompilerException(CompilerException::INVALID_CLOSING_SQUARE, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+						throw CompilerException(CompilerException::INVALID_CLOSING_SQUARE, (*ptr)->line, (*ptr)->column);
 					}
 					break;
 
@@ -562,7 +571,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 						outputList.splice(outputList.begin(), inputList, start, ptr);
 						goto process;
 					} else { // Otherwise there is an extra closing bracket and that's an error
-						throw CompilerException(CompilerException::INVALID_CLOSING_CURLY, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
+						throw CompilerException(CompilerException::INVALID_CLOSING_CURLY, (*ptr)->line, (*ptr)->column);
 					}
 					break;
 			}
@@ -576,72 +585,233 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 			outputList.splice(outputList.begin(), inputList, start, ptr);
 			break;
 		case NodeType::PAREN_GROUP:
-			// TODO: Make all nodes store line and column info
-			// throw CompilerException(CompilerException::INVALID_CLOSING_PAREN, static_cast<NodeToken*>(*(--ptr))->token->line, static_cast<NodeToken*>(*(--ptr))->token->column);
-			throw CompilerException(CompilerException::MISSING_CLOSING_PAREN, -1, -1);
+			ptr--;
+			throw CompilerException(CompilerException::MISSING_CLOSING_PAREN, (*ptr)->line, (*ptr)->column);
 			break;
 		case NodeType::SQUARE_GROUP:
-			throw CompilerException(CompilerException::MISSING_CLOSING_SQUARE, -1, -1);
+			ptr--;
+			throw CompilerException(CompilerException::MISSING_CLOSING_SQUARE, (*ptr)->line, (*ptr)->column);
 			break;
 		case NodeType::CURLY_GROUP:
-			throw CompilerException(CompilerException::MISSING_CLOSING_CURLY, -1, -1);
+			ptr--;
+			throw CompilerException(CompilerException::MISSING_CLOSING_CURLY, (*ptr)->line, (*ptr)->column);
 			break;
 	}
-	
+
 
 process:
 	bool flag = false;
 	ExprBinop* binop;
+	Expr* left;
+	Expr* right;
+	ExprType resultType;
 
 	// Pass 1: Multiplication and Division
+	// Loop through the list of nodes (left to right)
 	for (ptr = outputList.begin(); ptr != outputList.end(); ptr++) {
-		switch ((*ptr)->type) {
-			case NodeType::TOKEN:
-				flag = false;
-				switch (static_cast<NodeToken*>(*ptr)->token->type) {
-					case TokenType::STAR:
-						flag = true;
-					case TokenType::SLASH:
-						pptr = std::next(ptr);
-						if (ptr == outputList.begin() || pptr == outputList.end() || !((*pptr)->isExpr) || !((*std::prev(ptr))->isExpr)) {
-							throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
-						}
-						//std::cout << "[" << (flag ? "*" : "/") << "]";
-						// TODO : Determine expression type and apply appropriate casting
-						binop = new ExprBinop(static_cast<Expr*>(*std::prev(ptr)), static_cast<Expr*>(*pptr), flag ? OpType::MULT : OpType::DIV, ExprType::UNKNOWN);
-						delete (*ptr);
-						ptr = outputList.erase(std::prev(ptr), std::next(pptr));
-						ptr = outputList.insert(ptr, binop);
-						break;
+		// Skip it if it's not a token
+		if ((*ptr)->type != NodeType::TOKEN) continue;
+		flag = false;
+		// Check the token type
+		switch (static_cast<NodeToken*>(*ptr)->token->type) {
+			// It's the same logic for either type, so one of them just sets a flag and uses fallthrough
+			case TokenType::STAR:
+				flag = true;
+			case TokenType::SLASH:
+				pptr = std::next(ptr);
+				// Check that we are not at the beginning or end, and check that the nodes before and after are expressions
+				if (ptr == outputList.begin() || pptr == outputList.end() || !((*pptr)->isExpr) || !((*std::prev(ptr))->isExpr)) {
+					// If that checn fails, throw an error
+					throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, (*ptr)->line, (*ptr)->column);
 				}
+
+				// The left and right expressions, and the result type (not set yet)
+				left = static_cast<Expr*>(*std::prev(ptr));
+				right = static_cast<Expr*>(*pptr);
+				resultType = ExprType::UNKNOWN;
+
+				// Checks the types against the patterns to see what casting is necessary and what the result type will be
+				for (const ArithmeticBinopPattern& pattern : arithmeticBinopPatterns) {
+					if ((left->evalType == pattern.aType && right->evalType == pattern.bType) || (left->evalType == pattern.bType && right->evalType == pattern.aType)) {
+						resultType = pattern.resultType;
+						// Apply casting if necessary
+						if (left->evalType != resultType) {
+							left = new ExprCast(left, resultType);
+						}
+						if (right->evalType != resultType) {
+							right = new ExprCast(right, resultType);
+						}
+						break;
+					}
+				}
+				// If none of the patterns matched, throw an error
+				if (resultType == ExprType::UNKNOWN) {
+					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
+				}
+
+				// Create a binop node
+				binop = new ExprBinop(left, right, flag ? OpType::MULT : OpType::DIV, resultType, (*ptr)->line, (*ptr)->column);
+				// Delete the token node
+				delete (*ptr);
+				// Replace the old nodes with the new one in the list
+				ptr = outputList.erase(std::prev(ptr), std::next(pptr));
+				ptr = outputList.insert(ptr, binop);
 				break;
 		}
 	}
 
 	// Pass 2: Addition and Subtraction
+	// The logic for this is the same as Pass 1 so read those comments
 	for (ptr = outputList.begin(); ptr != outputList.end(); ptr++) {
-		switch ((*ptr)->type) {
-			case NodeType::TOKEN:
-				flag = false;
-				switch (static_cast<NodeToken*>(*ptr)->token->type) {
-					case TokenType::PLUS:
-						flag = true;
-					case TokenType::DASH:
-						pptr = std::next(ptr);
-						if (ptr == outputList.begin() || pptr == outputList.end() || !((*pptr)->isExpr) || !((*std::prev(ptr))->isExpr)) {
-							throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, static_cast<NodeToken*>(*ptr)->token->line, static_cast<NodeToken*>(*ptr)->token->column);
-						}
-						//std::cout << "[" << (flag ? "+" : "-") << "]";
-						// TODO : Determine expression type and apply appropriate casting
-						binop = new ExprBinop(static_cast<Expr*>(*std::prev(ptr)), static_cast<Expr*>(*pptr), flag ? OpType::ADD : OpType::SUB, ExprType::UNKNOWN);
-						delete (*ptr);
-						ptr = outputList.erase(std::prev(ptr), std::next(pptr));
-						ptr = outputList.insert(ptr, binop);
-						break;
+		if ((*ptr)->type != NodeType::TOKEN) continue;
+		flag = false;
+		switch (static_cast<NodeToken*>(*ptr)->token->type) {
+			case TokenType::PLUS:
+				flag = true;
+			case TokenType::DASH:
+				pptr = std::next(ptr);
+				if (ptr == outputList.begin() || pptr == outputList.end() || !((*pptr)->isExpr) || !((*std::prev(ptr))->isExpr)) {
+					throw CompilerException(CompilerException::BINOP_MISSING_EXPRESSION, (*ptr)->line, (*ptr)->column);
 				}
+
+				left = static_cast<Expr*>(*std::prev(ptr));
+				right = static_cast<Expr*>(*pptr);
+				resultType = ExprType::UNKNOWN;
+
+				for (const ArithmeticBinopPattern& pattern : arithmeticBinopPatterns) {
+					if ((left->evalType == pattern.aType && right->evalType == pattern.bType) || (left->evalType == pattern.bType && right->evalType == pattern.aType)) {
+						resultType = pattern.resultType;
+						if (left->evalType != resultType) {
+							left = new ExprCast(left, resultType);
+						}
+						if (right->evalType != resultType) {
+							right = new ExprCast(right, resultType);
+						}
+						break;
+					}
+				}
+				if (resultType == ExprType::UNKNOWN) {
+					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
+				}
+
+				binop = new ExprBinop(left, right, flag ? OpType::ADD : OpType::SUB, resultType, (*ptr)->line, (*ptr)->column);
+				delete (*ptr);
+				ptr = outputList.erase(std::prev(ptr), std::next(pptr));
+				ptr = outputList.insert(ptr, binop);
 				break;
 		}
 	}
 
 	return 0;
+}
+
+#define ASM_WRITERAW(thing, sz) outputFile.write(thing, sz); byteCounter += sz
+#define ASM_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
+
+
+compiler::RegManager::RegManager() {
+	for (int i = 0; i < register_::NUM_WORD_REGISTERS; i++) {
+		wordsActive[i] = false;
+	}
+
+	for (int i = 0; i < register_::NUM_BYTE_REGISTERS; i++) {
+		bytesActive[i] = false;
+	}
+}
+
+types::reg_t compiler::RegManager::getWord() {
+	for (int i = 0; i < register_::NUM_WORD_REGISTERS; i++) {
+		if (!wordsActive[i]) {
+			wordsActive[i] = true;
+			return static_cast<reg_t>(i + register_::W0);
+		}
+	}
+	// Run out of registers?
+	throw CompilerException(CompilerException::OUT_OF_REGISTERS, -1, -1);
+}
+
+void compiler::RegManager::freeWord(reg_t reg) {
+	wordsActive[reg - register_::W0] = false;
+}
+
+types::reg_t compiler::RegManager::getByte() {
+	for (int i = 0; i < register_::NUM_BYTE_REGISTERS; i++) {
+		if (!bytesActive[i]) {
+			bytesActive[i] = true;
+			return static_cast<reg_t>(i + register_::B0);
+		}
+	}
+	// Run out of registers?
+	throw CompilerException(CompilerException::OUT_OF_REGISTERS, -1, -1);
+}
+
+void compiler::RegManager::freeByte(reg_t reg) {
+	bytesActive[reg - register_::B0] = false;
+}
+
+int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream) {
+	using namespace AST;
+	/*
+	So how the hell is this supposed to work?
+
+	Seems like you'd have to start at the bottom of the tree for expressions if you want efficient register usage?
+
+	Starting with expressions...
+	we can assume any expression is valid.
+	Depending on the type we can recursively evaluate each sub-expression of a parent expression, and then the parent itself.
+
+
+	And I guess somewhere in the AST construction we'll also take care of globals so that that can be set up before we start writing other stuff to the file
+
+	*/
+
+	RegManager reg;
+
+	int byteCounter = 0;
+
+
+
+
+	// TEMP!
+	reg_t rid1 = 0;
+
+
+	if ((*list.begin())->isExpr) {
+		rid1 = makeExprBytecode(static_cast<Expr*>(*list.begin()), reg, outputFile, byteCounter, stream);
+	}
+
+	// (END) TEMP!
+
+
+	return 0;
+}
+
+types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+	using namespace AST;
+
+	reg_t ridOut = 0;
+	opcode_t opcode = 0;
+
+	switch (expr->type) {
+		case NodeType::INT:
+			// TODO : Test this (cuz I haven't yet)
+			ridOut = reg.getWord();
+			opcode = opcode::MOV_W;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(static_cast<ExprInt*>(expr)->int_, int_t);
+				break;
+		case NodeType::FLOAT:
+			break;
+		case NodeType::BOOL:
+			break;
+		case NodeType::CAST:
+			break;
+		case NodeType::CHAR:
+			break;
+		case NodeType::BINOP:
+			break;
+	}
+
+	return ridOut;
 }

@@ -47,12 +47,6 @@
     <ClInclude Include="utils.h">
       <Filter>Main</Filter>
     </ClInclude>
-    <ClInclude Include="VM\opcode.h">
-      <Filter>VM</Filter>
-    </ClInclude>
-    <ClInclude Include="VM\register.h">
-      <Filter>VM</Filter>
-    </ClInclude>
     <ClInclude Include="VM\assembler.h">
       <Filter>VM</Filter>
     </ClInclude>
@@ -64,6 +58,12 @@
     </ClInclude>
     <ClInclude Include="Compiler\ast.h">
       <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="register.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="opcode.h">
+      <Filter>Main</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

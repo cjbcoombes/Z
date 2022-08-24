@@ -4,6 +4,9 @@
 #include <iomanip>
 #include <fstream>                                                                                                                                                                                                                                                                                       
 
+#include "register.h"
+#include "opcode.h"
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ARR_LEN(arr) \

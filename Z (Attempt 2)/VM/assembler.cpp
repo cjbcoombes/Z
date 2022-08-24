@@ -39,7 +39,7 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 }
 
 int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream) {
-	using namespace vm::opcode;
+	using namespace opcode;
 	using namespace types;
 
 	// Flags/settings

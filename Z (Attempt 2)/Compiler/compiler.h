@@ -16,7 +16,6 @@ namespace compiler {
 	// An enum for the type of a token
 	enum class TokenType {
 		IDENTIFIER,
-		PRIMITIVE_TYPE,
 		STRING,
 		CHAR,
 		// Token1s
@@ -197,6 +196,7 @@ namespace compiler {
 			INT,
 			FLOAT,
 			BOOL,
+			CHAR,
 			CAST,
 			BINOP
 		};
@@ -206,7 +206,8 @@ namespace compiler {
 			UNKNOWN,
 			INT,
 			FLOAT,
-			BOOL
+			BOOL,
+			CHAR
 		};
 
 		// Names of expression types (for printing to console)
@@ -214,7 +215,8 @@ namespace compiler {
 			"Unknown",
 			"Int",
 			"Float",
-			"Bool"
+			"Bool",
+			"Char"
 		};
 
 		// Types of operations
@@ -235,17 +237,29 @@ namespace compiler {
 
 		//
 
-		// TODO : Rethink this?
+		// A pattern for the possible type patterns for a binop, and their implicit type casts
 		struct ArithmeticBinopPattern {
-			ExprType left;
-			ExprType right;
-			ExprType result;
+			ExprType resultType;
+			ExprType aType;
+			ExprType bType;
 
-			ArithmeticBinopPattern(ExprType leftIn, ExprType rightIn, ExprType resultIn) : left(leftIn), right(rightIn), result(resultIn) {}
+			ArithmeticBinopPattern(ExprType r, ExprType a, ExprType b) : resultType(r), aType(a), bType(b) {}
+			ArithmeticBinopPattern(ExprType a, ExprType b) : resultType(a), aType(a), bType(b) {}
+			ArithmeticBinopPattern(ExprType a) : resultType(a), aType(a), bType(a) {}
 		};
 
+		// The valid patterns
 		const ArithmeticBinopPattern arithmeticBinopPatterns[] = {
-			{ExprType::INT, ExprType::INT, ExprType::INT}
+			{ExprType::INT},
+			{ExprType::FLOAT},
+			{ExprType::CHAR},
+			{ExprType::FLOAT, ExprType::INT},
+			{ExprType::FLOAT, ExprType::CHAR},
+			{ExprType::FLOAT, ExprType::BOOL},
+			{ExprType::INT, ExprType::CHAR},
+			{ExprType::INT, ExprType::BOOL},
+			{ExprType::CHAR, ExprType::BOOL},
+			{ExprType::INT, ExprType::BOOL, ExprType::BOOL}
 		};
 
 		//
@@ -255,10 +269,12 @@ namespace compiler {
 			const NodeType type;
 			// Used to check if it evaluates to an expression
 			bool isExpr;
+			int line;
+			int column;
 
-			Node() : type(NodeType::NONE), isExpr(false) {}
-			Node(AST::NodeType typeIn) : type(typeIn), isExpr(false) {}
-			Node(AST::NodeType typeIn, bool isExprIn) : type(typeIn), isExpr(isExprIn) {}
+			Node(int lineIn, int columnIn) : type(NodeType::NONE), isExpr(false), line(lineIn), column(columnIn) {}
+			Node(AST::NodeType typeIn, int lineIn, int columnIn) : type(typeIn), isExpr(false), line(lineIn), column(columnIn) {}
+			Node(AST::NodeType typeIn, bool isExprIn, int lineIn, int columnIn) : type(typeIn), isExpr(isExprIn), line(lineIn), column(columnIn) {}
 			virtual ~Node() {}
 
 			// Every type of node has a print to console functionality
@@ -295,7 +311,7 @@ namespace compiler {
 		struct NodeParenGroup : public Node {
 			NodeList nodeList;
 
-			NodeParenGroup() : Node(NodeType::PAREN_GROUP) {}
+			NodeParenGroup() : Node(NodeType::PAREN_GROUP, -1, -1) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << '(' << '\n';
@@ -308,7 +324,7 @@ namespace compiler {
 		struct NodeSquareGroup : public Node {
 			NodeList nodeList;
 
-			NodeSquareGroup() : Node(NodeType::SQUARE_GROUP) {}
+			NodeSquareGroup() : Node(NodeType::SQUARE_GROUP, -1, -1) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << '[' << '\n';
@@ -321,7 +337,7 @@ namespace compiler {
 		struct NodeCurlyGroup : public Node {
 			NodeList nodeList;
 
-			NodeCurlyGroup() : Node(NodeType::CURLY_GROUP) {}
+			NodeCurlyGroup() : Node(NodeType::CURLY_GROUP, -1, -1) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << '{' << '\n';
@@ -336,7 +352,7 @@ namespace compiler {
 		struct Expr : public Node {
 			const ExprType evalType;
 
-			Expr(NodeType typeIn, ExprType evalTypeIn) : Node(typeIn, true), evalType(evalTypeIn) {}
+			Expr(NodeType typeIn, ExprType evalTypeIn, int lineIn, int columnIn) : Node(typeIn, true, lineIn, columnIn), evalType(evalTypeIn) {}
 		};
 
 		// A subclass of node that acts as a wrapper for a token
@@ -344,7 +360,7 @@ namespace compiler {
 			// Essentially a pointer to a token
 			TokenList::iterator token;
 
-			NodeToken(TokenList::iterator tokenIn) : Node(NodeType::TOKEN), token(tokenIn) {}
+			NodeToken(TokenList::iterator tokenIn) : Node(NodeType::TOKEN, tokenIn->line, tokenIn->column), token(tokenIn) {}
 			// Note that the Node does not destroy the Token. That's because all of the tokens are
 			// still destroyed normally by the TokenList that they are a part of
 
@@ -357,10 +373,12 @@ namespace compiler {
 		struct ExprInt : public Expr {
 			int_t int_;
 
-			ExprInt(int_t intIn) : Expr(NodeType::INT, ExprType::INT), int_(intIn) {}
+			ExprInt(int_t intIn) : Expr(NodeType::INT, ExprType::INT, -1, -1), int_(intIn) {}
+			ExprInt(NodeToken* tokenNode) : Expr(NodeType::INT, ExprType::INT, tokenNode->line, tokenNode->column), int_(tokenNode->token->int_) {}
+			// TODO : Change this to take a Token as input, and adopt the line/column automatically
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Int: " << int_ << '\n';
+				stream << std::string(indent, '\t') << "[Int] " << int_ << '\n';
 			}
 		};
 
@@ -368,10 +386,11 @@ namespace compiler {
 		struct ExprFloat : public Expr {
 			float_t float_;
 
-			ExprFloat(float_t floatIn) : Expr(NodeType::FLOAT, ExprType::FLOAT), float_(floatIn) {}
+			ExprFloat(float_t floatIn) : Expr(NodeType::FLOAT, ExprType::FLOAT, -1, -1), float_(floatIn) {}
+			ExprFloat(NodeToken* tokenNode) : Expr(NodeType::FLOAT, ExprType::FLOAT, tokenNode->line, tokenNode->column), float_(tokenNode->token->float_) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Float: " << float_ << '\n';
+				stream << std::string(indent, '\t') << "[Float] " << float_ << '\n';
 			}
 		};
 
@@ -379,10 +398,23 @@ namespace compiler {
 		struct ExprBool : public Expr {
 			bool_t bool_;
 
-			ExprBool(bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL), bool_(boolIn) {}
+			ExprBool(bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, -1, -1), bool_(boolIn) {}
+			ExprBool(NodeToken* tokenNode, bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, tokenNode->line, tokenNode->column), bool_(boolIn) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Bool: " << bool_ << '\n';
+				stream << std::string(indent, '\t') << "[Bool] " << static_cast<int>(bool_) << '\n';
+			}
+		};
+
+		// A raw char node
+		struct ExprChar : public Expr {
+			char_t char_;
+
+			ExprChar(char_t charIn) : Expr(NodeType::CHAR, ExprType::CHAR, -1, -1), char_(charIn) {}
+			ExprChar(NodeToken* tokenNode) : Expr(NodeType::CHAR, ExprType::CHAR, tokenNode->line, tokenNode->column), char_(tokenNode->token->char_) {}
+
+			void print(std::ostream& stream, int indent) {
+				stream << std::string(indent, '\t') << "[Char] " << char_ << '\n';
 			}
 		};
 
@@ -394,13 +426,17 @@ namespace compiler {
 		struct ExprIdentifier : public Expr {
 			std::string* str;
 
-			ExprIdentifier(std::string* strIn) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN), str(strIn) {}
+			ExprIdentifier(std::string* strIn) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN, -1, -1), str(strIn) {}
+			ExprIdentifier(NodeToken* tokenNode) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN, tokenNode->line, tokenNode->column), str(tokenNode->token->str) {
+				tokenNode->token->hasStr = false;
+				tokenNode->token->str = nullptr;
+			}
 			~ExprIdentifier() {
 				delete str;
 			}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "ID: " << (*str) << '\n';
+				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] ID: " << (*str) << '\n';
 			}
 		};
 
@@ -410,13 +446,13 @@ namespace compiler {
 		struct ExprCast : public Expr {
 			Expr* source;
 
-			ExprCast(Expr* sourceIn, ExprType typeIn) : Expr(NodeType::CAST, typeIn), source(sourceIn) {}
+			ExprCast(Expr* sourceIn, ExprType typeIn) : Expr(NodeType::CAST, typeIn, sourceIn->line, sourceIn->column), source(sourceIn) {}
 			~ExprCast() {
 				delete source;
 			}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Cast to type " << exprTypeNames[static_cast<int>(evalType)] << '\n';
+				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] Cast from\n";
 				source->print(stream, indent + 1);
 			}
 		};
@@ -427,22 +463,18 @@ namespace compiler {
 			Expr* right;
 			OpType opType;
 
-			ExprBinop(Expr* leftIn, Expr* rightIn, OpType opTypeIn, ExprType typeIn) : Expr(NodeType::BINOP, typeIn), left(leftIn), right(rightIn), opType(opTypeIn) {}
+			ExprBinop(Expr* leftIn, Expr* rightIn, OpType opTypeIn, ExprType typeIn, int lineIn, int columnIn) : Expr(NodeType::BINOP, typeIn, lineIn, columnIn), left(leftIn), right(rightIn), opType(opTypeIn) {}
 			~ExprBinop() {
 				delete left;
 				delete right;
 			}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Binop " << opTypeNames[static_cast<int>(opType)] << " with result type " << exprTypeNames[static_cast<int>(evalType)] << '\n';
+				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] Binop " << opTypeNames[static_cast<int>(opType)] << '\n';
 				left->print(stream, indent + 1);
 				stream << std::string(indent + 1, '\t') << "------\n";
 				right->print(stream, indent + 1);
 			}
-		};
-
-		struct Tree {
-
 		};
 	}
 
@@ -459,6 +491,7 @@ namespace compiler {
 	class CompilerException : public std::exception {
 	public:
 		enum ErrorType {
+			UNKNOWN,
 			STRING_TOO_LONG,
 			INVALID_NUMBER,
 			INVALID_CLOSING_PAREN,
@@ -468,9 +501,13 @@ namespace compiler {
 			MISSING_CLOSING_SQUARE,
 			MISSING_CLOSING_CURLY,
 			BINOP_MISSING_EXPRESSION,
+			BINOP_ILLEGAL_PATTERN,
+
+			OUT_OF_REGISTERS
 		};
 
 		static constexpr const char* const errorStrings[] = {
+			"I don't really know how this happened but it shouldn't have",
 			"String too long",
 			"Invalid number",
 			"Invalid closing parenthesis",
@@ -479,7 +516,10 @@ namespace compiler {
 			"Missing a closing parenthesis",
 			"Missing a closing square bracket",
 			"Missing a closing curly bracket",
-			"Binop is missing an expression on one or both sides"
+			"Binop is missing an expression on one or both sides",
+			"No binop pattern exists for the given operand types",
+
+			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually"
 		};
 
 		const ErrorType eType;
@@ -505,12 +545,34 @@ namespace compiler {
 	};
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// Register Manager
+
+	struct RegManager {
+		bool wordsActive[register_::NUM_WORD_REGISTERS];
+		bool bytesActive[register_::NUM_BYTE_REGISTERS];
+
+		RegManager();
+
+		reg_t getWord();
+
+		void freeWord(reg_t reg);
+
+		reg_t getByte();
+		void freeByte(reg_t reg);
+	};
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Functions
 
 	int compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& settings);
 	int compile_(std::iostream& inputFile, std::iostream& outputFile, CompilerSettings& settings, std::ostream& stream);
+
 	int tokenize(TokenList& tokenList, std::iostream& file, std::ostream& stream);
 	int parseNumber(NoDestructToken& token);
-	int constructAST(AST::Tree& tree, TokenList& tokenList, std::ostream& stream);
+
+	int constructAST(AST::NodeList& outputList, TokenList& tokenList, std::ostream& stream);
 	int condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::NodeList::iterator start, AST::NodeType type);
+
+	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream);
+	reg_t makeExprBytecode(AST::Expr* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
 }
