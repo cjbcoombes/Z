@@ -13,7 +13,7 @@
 	sizeof(arr) / sizeof(arr[0])
 
 #define TO_CH_PT(x) \
-	reinterpret_cast<char*>(&x)
+	reinterpret_cast<char*>(&(x))
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ANSI codes (and other io utils)

@@ -457,7 +457,7 @@ namespace compiler {
 			}
 		};
 
-		// A node representind a binary infix operation
+		// A node representing a binary infix operation
 		struct ExprBinop : public Expr {
 			Expr* left;
 			Expr* right;
@@ -503,7 +503,8 @@ namespace compiler {
 			BINOP_MISSING_EXPRESSION,
 			BINOP_ILLEGAL_PATTERN,
 
-			OUT_OF_REGISTERS
+			OUT_OF_REGISTERS,
+			UNKNOWN_CAST
 		};
 
 		static constexpr const char* const errorStrings[] = {
@@ -519,7 +520,8 @@ namespace compiler {
 			"Binop is missing an expression on one or both sides",
 			"No binop pattern exists for the given operand types",
 
-			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually"
+			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually",
+			"Attempting to cast to or from an unknown type (don't know how this happened)"
 		};
 
 		const ErrorType eType;
@@ -545,8 +547,9 @@ namespace compiler {
 	};
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	// Register Manager
+	// Stuff for the bytecode generator
 
+	// Keeps track of which registers are in use or not
 	struct RegManager {
 		bool wordsActive[register_::NUM_WORD_REGISTERS];
 		bool bytesActive[register_::NUM_BYTE_REGISTERS];
@@ -559,6 +562,18 @@ namespace compiler {
 
 		reg_t getByte();
 		void freeByte(reg_t reg);
+	};
+
+	// Gets the opcode for a cast. Used as castOpcodes[ExprType:: *source* ][ExprType:: *target* ]
+	// -1 means error (we have an unknown type for some reason)
+	// -2 means do nothing (no cast necessary)
+	// -3, -4, -5 are special-case conversions to bool 
+	constexpr int castOpcodes[5][5] = {
+		{-1,	-1,				-1,				-1,				-1},
+		{-1,	-2,				opcode::I_TO_F,	opcode::I_TO_C,	-3},
+		{-1,	opcode::F_TO_I,	-2,				opcode::F_TO_C,	-4},
+		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-5},
+		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-2}
 	};
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -575,4 +590,5 @@ namespace compiler {
 
 	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream);
 	reg_t makeExprBytecode(AST::Expr* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
+	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
 }

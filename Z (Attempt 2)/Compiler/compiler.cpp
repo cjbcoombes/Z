@@ -719,7 +719,7 @@ compiler::RegManager::RegManager() {
 	}
 }
 
-types::reg_t compiler::RegManager::getWord() {
+types::reg_t	compiler::RegManager::getWord() {
 	for (int i = 0; i < register_::NUM_WORD_REGISTERS; i++) {
 		if (!wordsActive[i]) {
 			wordsActive[i] = true;
@@ -730,11 +730,11 @@ types::reg_t compiler::RegManager::getWord() {
 	throw CompilerException(CompilerException::OUT_OF_REGISTERS, -1, -1);
 }
 
-void compiler::RegManager::freeWord(reg_t reg) {
+void			compiler::RegManager::freeWord(reg_t reg) {
 	wordsActive[reg - register_::W0] = false;
 }
 
-types::reg_t compiler::RegManager::getByte() {
+types::reg_t	compiler::RegManager::getByte() {
 	for (int i = 0; i < register_::NUM_BYTE_REGISTERS; i++) {
 		if (!bytesActive[i]) {
 			bytesActive[i] = true;
@@ -745,7 +745,7 @@ types::reg_t compiler::RegManager::getByte() {
 	throw CompilerException(CompilerException::OUT_OF_REGISTERS, -1, -1);
 }
 
-void compiler::RegManager::freeByte(reg_t reg) {
+void			compiler::RegManager::freeByte(reg_t reg) {
 	bytesActive[reg - register_::B0] = false;
 }
 
@@ -778,6 +778,7 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::
 
 	if ((*list.begin())->isExpr) {
 		rid1 = makeExprBytecode(static_cast<Expr*>(*list.begin()), reg, outputFile, byteCounter, stream);
+
 	}
 
 	// (END) TEMP!
@@ -792,26 +793,57 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager reg, std::io
 	reg_t ridOut = 0;
 	opcode_t opcode = 0;
 
+	int utilityInt;
+
+	ExprCast* exprCast;
+
 	switch (expr->type) {
 		case NodeType::INT:
-			// TODO : Test this (cuz I haven't yet)
 			ridOut = reg.getWord();
 			opcode = opcode::MOV_W;
 			ASM_WRITE(opcode, opcode_t);
 			ASM_WRITE(ridOut, reg_t);
 			ASM_WRITE(static_cast<ExprInt*>(expr)->int_, int_t);
-				break;
+			break;
 		case NodeType::FLOAT:
+			ridOut = reg.getWord();
+			opcode = opcode::MOV_W;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(static_cast<ExprFloat*>(expr)->float_, float_t);
 			break;
 		case NodeType::BOOL:
-			break;
-		case NodeType::CAST:
+			ridOut = reg.getByte();
+			opcode = opcode::MOV_B;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(static_cast<ExprBool*>(expr)->bool_, int_t);
 			break;
 		case NodeType::CHAR:
+			ridOut = reg.getByte();
+			opcode = opcode::MOV_B;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(static_cast<ExprChar*>(expr)->char_, int_t);
+			break;
+		case NodeType::CAST:
+			exprCast = static_cast<ExprCast*>(expr);
+			ridOut = makeCastBytecode(exprCast, reg, outputFile, byteCounter, stream);
 			break;
 		case NodeType::BINOP:
 			break;
 	}
 
 	return ridOut;
+}
+
+types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+	reg_t ridOut = makeExprBytecode(expr->source, reg, outputFile, byteCounter, stream);
+	int opcode = castOpcodes[static_cast<int>(expr->source->evalType)][static_cast<int>(expr->evalType)];
+
+	// TODO : this
+	switch (opcode) {
+
+	}
+	throw CompilerException(CompilerException::UNKNOWN_CAST, -1, -1);
 }
