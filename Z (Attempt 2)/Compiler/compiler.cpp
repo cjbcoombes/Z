@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include <unordered_map>
 
 int compiler::compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& compileSettings) {
 	using std::cout;
@@ -396,53 +397,65 @@ int compiler::parseNumber(NoDestructToken& token) {
 
 int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, std::ostream& stream) {
 	using namespace AST;
+
+	/*
+	
+	ok ok ok thinking about identifiers and resolving scope
+	So when we read each identifier we'll give it a number because that's easier than using strings
+
+	But then how does the AST determine scope? Well that's a language design choice... so how should the language determine scope?
+	Shit. I actually have to design the language now.
+	
+	*/
+
+	std::unordered_map<std::string, int> ids;
+	int numIds = 0;
+
 	NodeList nodeList;
 	// The nodelist starts out filled with wrappers of all of the tokens
 	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
-		nodeList.emplace_back(new NodeToken(ptr));
-	}
-
-	// First Pass: create nodes for tokens that should have their own node
-	// This includes NUMBERS, IDENTIFIERS, ... more (TODO)
-	for (auto ptr = nodeList.begin(); ptr != nodeList.end(); ptr++) {
-		// OK to cast since we know they're all NodeToken right now
-		NodeToken* origNode = static_cast<NodeToken*>(*ptr);
-		Node* newNode = nullptr;
-		TokenType type = origNode->token->type;
-
 		// Create appropriate nodes depending on the type (pretty self-explanatory)
-		switch (type) {
+		switch (ptr->type) {
 			case TokenType::NUM_INT:
-				newNode = new ExprInt(origNode);
+				nodeList.emplace_back(new ExprInt(&(*ptr)));
 				break;
 
 			case TokenType::NUM_FLOAT:
-				newNode = new ExprFloat(origNode);
+				nodeList.emplace_back(new ExprFloat(&(*ptr)));
 				break;
 
 			case TokenType::IDENTIFIER:
-				// Ownership of string pointer is effectively transferred
-				if (!(origNode->token->hasStr)) {
+				if (!(ptr->hasStr)) {
 					// How did this happen?
-					throw CompilerException(CompilerException::UNKNOWN, origNode->line, origNode->column);
+					throw CompilerException(CompilerException::UNKNOWN, ptr->line, ptr->column);
 				}
-				newNode = new ExprIdentifier(origNode);
+				// If this ID already has a number, use it
+				if (ids.count(*(ptr->str)) > 0) {
+					nodeList.emplace_back(new ExprIdentifier(ids.at(*(ptr->str))));
+				} else { // Otherwise generate a new number
+					ids.emplace(std::pair<std::string, int>(*(ptr->str), numIds));
+					nodeList.emplace_back(new ExprIdentifier(numIds));
+					stream << "New ID [" << numIds << "]: " << *(ptr->str) << '\n';
+					numIds++;
+				}
+				// Delete the string
+				// If this wasn't here it would get deleted by a destructor anyway
+				delete ptr->str;
+				ptr->hasStr = false;
+				ptr->str = nullptr;
 				break;
 
 			case TokenType::TRUE:
-				newNode = new ExprBool(origNode, 1);
+				nodeList.emplace_back(new ExprBool(&(*ptr), 1));
 				break;
 
 			case TokenType::FALSE:
-				newNode = new ExprBool(origNode, 0);
+				nodeList.emplace_back(new ExprBool(&(*ptr), 0));
 				break;
-		}
 
-		// If there's a new node, delete the old one and replace it in the list
-		if (newNode) {
-			delete origNode;
-			// Note that there is no construction/destruction here, we are only moving a pointer around
-			(*ptr) = newNode;
+			default:
+				nodeList.emplace_back(new NodeToken(ptr));
+				break;
 		}
 	}
 
@@ -749,6 +762,19 @@ void			compiler::RegManager::freeByte(reg_t reg) {
 	bytesActive[reg - register_::B0] = false;
 }
 
+void			compiler::RegManager::free(reg_t reg) {
+	if (reg >= register_::B0) freeByte(reg);
+	else freeWord(reg);
+}
+
+bool compiler::RegManager::isWord(reg_t reg) {
+	return reg >= register_::W0 && reg < register_::B0;
+}
+
+bool compiler::RegManager::isByte(reg_t reg) {
+	return reg >= register_::B0;
+}
+
 int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream) {
 	using namespace AST;
 	/*
@@ -759,7 +785,7 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::
 	Starting with expressions...
 	we can assume any expression is valid.
 	Depending on the type we can recursively evaluate each sub-expression of a parent expression, and then the parent itself.
-
+	TODO : optimize the AST so it pre-solves any expression that it can
 
 	And I guess somewhere in the AST construction we'll also take care of globals so that that can be set up before we start writing other stuff to the file
 
@@ -774,11 +800,16 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::
 
 	// TEMP!
 	reg_t rid1 = 0;
+	opcode_t opcode = 0;
 
+	int_t startPos = 4;
+	ASM_WRITE(startPos, int_t);
 
 	if ((*list.begin())->isExpr) {
 		rid1 = makeExprBytecode(static_cast<Expr*>(*list.begin()), reg, outputFile, byteCounter, stream);
-
+		opcode = opcode::R_PRNT_F;
+		ASM_WRITE(opcode, opcode_t);
+		ASM_WRITE(rid1, reg_t);
 	}
 
 	// (END) TEMP!
@@ -787,7 +818,7 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::
 	return 0;
 }
 
-types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
 	using namespace AST;
 
 	reg_t ridOut = 0;
@@ -796,8 +827,11 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager reg, std::io
 	int utilityInt;
 
 	ExprCast* exprCast;
+	ExprBinop* exprBinop;
 
+	// Makes the bytecode based on the expr type
 	switch (expr->type) {
+		// Primitive types are simple register assignments
 		case NodeType::INT:
 			ridOut = reg.getWord();
 			opcode = opcode::MOV_W;
@@ -817,33 +851,137 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager reg, std::io
 			opcode = opcode::MOV_B;
 			ASM_WRITE(opcode, opcode_t);
 			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(static_cast<ExprBool*>(expr)->bool_, int_t);
+			ASM_WRITE(static_cast<ExprBool*>(expr)->bool_, char_t);
 			break;
 		case NodeType::CHAR:
 			ridOut = reg.getByte();
 			opcode = opcode::MOV_B;
 			ASM_WRITE(opcode, opcode_t);
 			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(static_cast<ExprChar*>(expr)->char_, int_t);
+			ASM_WRITE(static_cast<ExprChar*>(expr)->char_, char_t);
 			break;
+
+			// Other types are more complicated and their logic is in separate functions
 		case NodeType::CAST:
 			exprCast = static_cast<ExprCast*>(expr);
 			ridOut = makeCastBytecode(exprCast, reg, outputFile, byteCounter, stream);
 			break;
 		case NodeType::BINOP:
+			exprBinop = static_cast<ExprBinop*>(expr);
+			ridOut = makeBinopBytecode(exprBinop, reg, outputFile, byteCounter, stream);
 			break;
 	}
 
 	return ridOut;
 }
 
-types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
-	reg_t ridOut = makeExprBytecode(expr->source, reg, outputFile, byteCounter, stream);
-	int opcode = castOpcodes[static_cast<int>(expr->source->evalType)][static_cast<int>(expr->evalType)];
+bool compiler::AST::isWord(ExprType type) {
+	return type == ExprType::INT || type == ExprType::FLOAT;
+}
+
+types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+	reg_t ridOut = 0;
+	reg_t rid = makeExprBytecode(expr->source, reg, outputFile, byteCounter, stream);
+	// opcodeInt could be a regular opcode or it could be negative for a special case
+	int opcodeInt = castOpcodes[static_cast<int>(expr->source->evalType)][static_cast<int>(expr->evalType)];
+	opcode_t opcode = 0;
 
 	// TODO : this
-	switch (opcode) {
+	switch (opcodeInt) {
+		case -1: // Invalid, somehow
+			throw CompilerException(CompilerException::UNKNOWN_CAST, -1, -1);
+			break;
 
+		case -2: // Do nothing (no cast necessary)
+			return rid;
+
+		case -3: // int to bool (flags the int and sets the bool based on that)
+			// TODO : I have no idea HOW, but if you knew the context that the output
+			// was being used there are some cases where you could just return register_::FZ
+			// but other times you can't know if that will be modified so yeah
+			opcode = opcode::I_FLAG;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(rid, reg_t);
+			reg.free(rid);
+
+			opcode = opcode::R_MOV_B;
+			ridOut = reg.getByte();
+			rid = register_::FZ;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(rid, reg_t);
+			break;
+
+		case -4: // float to bool... same idea
+			opcode = opcode::F_FLAG;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(rid, reg_t);
+			reg.free(rid);
+
+			opcode = opcode::R_MOV_B;
+			ridOut = reg.getByte();
+			rid = register_::FZ;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(rid, reg_t);
+			break;
+
+		case -5: // char to bool... same idea
+			opcode = opcode::C_FLAG;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(rid, reg_t);
+
+			opcode = opcode::R_MOV_B;
+			// Don't have to request a new register here because we
+			// don't care about preserving the old byte value
+			ridOut = rid;
+			rid = register_::FZ;
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(rid, reg_t);
+			break;
+
+
+		default: // opcode is the casting opcode
+			opcode = static_cast<opcode_t>(opcodeInt);
+			// TODO : choose to get word or byte based on cast result type
+			if (isWord(expr->evalType)) {
+				ridOut = reg.isWord(rid) ? rid : reg.getWord();
+			} else {
+				ridOut = reg.isByte(rid) ? rid : reg.getByte();
+			}
+			ASM_WRITE(opcode, opcode_t);
+			ASM_WRITE(ridOut, reg_t);
+			ASM_WRITE(rid, reg_t);
+			if (rid != ridOut) reg.free(rid);
+			break;
 	}
-	throw CompilerException(CompilerException::UNKNOWN_CAST, -1, -1);
+
+	return ridOut;
+}
+
+types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+	using namespace AST;
+
+	reg_t ridLeft = makeExprBytecode(expr->left, reg, outputFile, byteCounter, stream);
+	reg_t ridRight = makeExprBytecode(expr->right, reg, outputFile, byteCounter, stream);
+	opcode_t opcode = 0;
+
+	// Look up the correct opcode
+	int opcodeInt = binopOpcodes[static_cast<int>(expr->opType)][static_cast<int>(expr->evalType)];
+
+	// Somehow we're adding types that shouldn't be added
+	if (opcodeInt == -1) throw CompilerException(CompilerException::UNKNOWN_BINOP, -1, -1);
+
+	opcode = static_cast<opcode_t>(opcodeInt);
+	// Efficiency-wise, we're doing a piss-poor job of conserving values in registers
+	// if they're used again later but y'know this is just my trying things
+	ASM_WRITE(opcode, opcode_t);
+	ASM_WRITE(ridLeft, reg_t);
+	ASM_WRITE(ridLeft, reg_t);
+	ASM_WRITE(ridRight, reg_t);
+
+	reg.free(ridRight);
+
+	return ridLeft;
 }

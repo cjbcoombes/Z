@@ -210,6 +210,8 @@ namespace compiler {
 			CHAR
 		};
 
+		bool isWord(ExprType type);
+
 		// Names of expression types (for printing to console)
 		constexpr const char* const exprTypeNames[] = {
 			"Unknown",
@@ -260,6 +262,22 @@ namespace compiler {
 			{ExprType::INT, ExprType::BOOL},
 			{ExprType::CHAR, ExprType::BOOL},
 			{ExprType::INT, ExprType::BOOL, ExprType::BOOL}
+		};
+
+		//
+
+		// Possible identifier types
+		enum class IdentifierType {
+			VAR,
+			FUNC,
+			TYPE
+			// NAMESPACE? CLASS/STRUCT?
+		};
+
+		// Data that is stored about an identifier (wow!)
+		struct IdentifierData {
+			std::string* str;
+			IdentifierType type;
 		};
 
 		//
@@ -374,7 +392,7 @@ namespace compiler {
 			int_t int_;
 
 			ExprInt(int_t intIn) : Expr(NodeType::INT, ExprType::INT, -1, -1), int_(intIn) {}
-			ExprInt(NodeToken* tokenNode) : Expr(NodeType::INT, ExprType::INT, tokenNode->line, tokenNode->column), int_(tokenNode->token->int_) {}
+			ExprInt(NoDestructToken* token) : Expr(NodeType::INT, ExprType::INT, token->line, token->column), int_(token->int_) {}
 			// TODO : Change this to take a Token as input, and adopt the line/column automatically
 
 			void print(std::ostream& stream, int indent) {
@@ -387,7 +405,7 @@ namespace compiler {
 			float_t float_;
 
 			ExprFloat(float_t floatIn) : Expr(NodeType::FLOAT, ExprType::FLOAT, -1, -1), float_(floatIn) {}
-			ExprFloat(NodeToken* tokenNode) : Expr(NodeType::FLOAT, ExprType::FLOAT, tokenNode->line, tokenNode->column), float_(tokenNode->token->float_) {}
+			ExprFloat(NoDestructToken* token) : Expr(NodeType::FLOAT, ExprType::FLOAT, token->line, token->column), float_(token->float_) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[Float] " << float_ << '\n';
@@ -399,7 +417,7 @@ namespace compiler {
 			bool_t bool_;
 
 			ExprBool(bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, -1, -1), bool_(boolIn) {}
-			ExprBool(NodeToken* tokenNode, bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, tokenNode->line, tokenNode->column), bool_(boolIn) {}
+			ExprBool(NoDestructToken* token, bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, token->line, token->column), bool_(boolIn) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[Bool] " << static_cast<int>(bool_) << '\n';
@@ -411,7 +429,7 @@ namespace compiler {
 			char_t char_;
 
 			ExprChar(char_t charIn) : Expr(NodeType::CHAR, ExprType::CHAR, -1, -1), char_(charIn) {}
-			ExprChar(NodeToken* tokenNode) : Expr(NodeType::CHAR, ExprType::CHAR, tokenNode->line, tokenNode->column), char_(tokenNode->token->char_) {}
+			ExprChar(NoDestructToken* token) : Expr(NodeType::CHAR, ExprType::CHAR, token->line, token->column), char_(token->char_) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[Char] " << char_ << '\n';
@@ -424,19 +442,12 @@ namespace compiler {
 		// TODO: At some point there'll be a dictionary of declared identifiers that this should refer to
 		// instead of holding its own data
 		struct ExprIdentifier : public Expr {
-			std::string* str;
+			int id;
 
-			ExprIdentifier(std::string* strIn) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN, -1, -1), str(strIn) {}
-			ExprIdentifier(NodeToken* tokenNode) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN, tokenNode->line, tokenNode->column), str(tokenNode->token->str) {
-				tokenNode->token->hasStr = false;
-				tokenNode->token->str = nullptr;
-			}
-			~ExprIdentifier() {
-				delete str;
-			}
+			ExprIdentifier(int idIn) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN, -1, -1), id(idIn) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] ID: " << (*str) << '\n';
+				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] ID: " << id << '\n';
 			}
 		};
 
@@ -504,7 +515,8 @@ namespace compiler {
 			BINOP_ILLEGAL_PATTERN,
 
 			OUT_OF_REGISTERS,
-			UNKNOWN_CAST
+			UNKNOWN_CAST,
+			UNKNOWN_BINOP
 		};
 
 		static constexpr const char* const errorStrings[] = {
@@ -521,7 +533,8 @@ namespace compiler {
 			"No binop pattern exists for the given operand types",
 
 			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually",
-			"Attempting to cast to or from an unknown type (don't know how this happened)"
+			"Attempting to cast to or from an unknown type (don't know how this happened)",
+			"Attempting a binop with an unknown type, or a boolean (don't know how this happened)"
 		};
 
 		const ErrorType eType;
@@ -562,6 +575,12 @@ namespace compiler {
 
 		reg_t getByte();
 		void freeByte(reg_t reg);
+
+		void free(reg_t reg);
+
+		bool isWord(reg_t reg);
+
+		bool isByte(reg_t reg);
 	};
 
 	// Gets the opcode for a cast. Used as castOpcodes[ExprType:: *source* ][ExprType:: *target* ]
@@ -574,6 +593,14 @@ namespace compiler {
 		{-1,	opcode::F_TO_I,	-2,				opcode::F_TO_C,	-4},
 		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-5},
 		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-2}
+	};
+
+	// Gets the opcode for a binop. Used as binopOpcodes[OpType:: *type* ][ExprType:: *operand type*]
+	constexpr int binopOpcodes[4][5] = {
+		{-1, opcode::I_ADD, opcode::F_ADD, -1, opcode::C_ADD },
+		{-1, opcode::I_SUB, opcode::F_SUB, -1, opcode::C_SUB },
+		{-1, opcode::I_MUL, opcode::F_MUL, -1, opcode::C_MUL },
+		{-1, opcode::I_DIV, opcode::F_DIV, -1, opcode::C_DIV },
 	};
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -589,6 +616,7 @@ namespace compiler {
 	int condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::NodeList::iterator start, AST::NodeType type);
 
 	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream);
-	reg_t makeExprBytecode(AST::Expr* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
-	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
+	reg_t makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
+	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
+	reg_t makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
 }

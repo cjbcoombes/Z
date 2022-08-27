@@ -50,9 +50,13 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 	char_t char_ = 0;
 	float_t float_ = 0;
 	char rlchar = 0;
+	
+	// stupid workaround for stupid stupidness
+	const char* strThingForDebugging;
 
 	while (program.ip < program.end) {
 		program.read<opcode_t>(&opcode);
+		strThingForDebugging = opcode::strings[opcode];
 		switch (opcode) {
 			case NOP:
 				break;

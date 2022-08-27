@@ -7,6 +7,14 @@
       "Command": "-debug -profile -compile \".\\CompilerExamples\\example1.z\" \".\\CompilerExamples\\example1.eze\""
     },
     {
+      "Id": "c57038a6-d898-4977-ab65-179e7005c7a9",
+      "Command": "-debug -exec \".\\CompilerExamples\\example1.eze\""
+    },
+    {
+      "Id": "dd07ce15-a182-4e30-b860-d7770abcfe78",
+      "Command": "-debug -profile -compile \".\\CompilerExamples\\example1.z\" \".\\CompilerExamples\\example1.eze\" -exec \".\\CompilerExamples\\example1.eze\""
+    },
+    {
       "Id": "a43e8a8c-4113-4094-885a-6112449b6b1f",
       "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\simple_user_input.azm\" \".\\AssemblyExamples\\simple_user_input.eze\""
     },
