@@ -1,6 +1,9 @@
 #include "compiler.h"
 #include <unordered_map>
 
+
+#define CMP_DEBUG(thing) if (isDebug) stream << IO_DEBUG << thing << IO_NORM "\n"
+
 int compiler::compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& compileSettings) {
 	using std::cout;
 	cout << "Attempting to compile file \"" << inputPath << "\" into output file \"" << outputPath << "\"\n";
@@ -39,25 +42,29 @@ int compiler::compile_(std::iostream& inputFile, std::iostream& outputFile, Comp
 
 	// Tokenize
 	TokenList tokenList;
-	tokenize(tokenList, inputFile, stream);
+	tokenize(tokenList, inputFile, compileSettings, stream);
 
 	stream << "\nAST:\n";
 
 	// Construct AST
 	AST::NodeList ast;
-	constructAST(ast, tokenList, stream);
+	constructAST(ast, tokenList, compileSettings, stream);
 
 	stream << "\nBytecode:\n";
 
-	makeBytecode(ast, outputFile, stream);
+	makeBytecode(ast, outputFile, compileSettings, stream);
 
 	return 0;
 }
 
-int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& stream) {
+int compiler::tokenize(TokenList& tokenList, std::iostream& file, CompilerSettings& compileSettings, std::ostream& stream) {
 	// Go to the start of the file
 	file.clear();
 	file.seekg(0, std::ios::beg);
+
+
+	// Flags/settings
+	const bool isDebug = compileSettings.flags.hasFlags(FLAG_DEBUG);
 
 	tokenList.clear();
 
@@ -279,7 +286,7 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, std::ostream& 
 		else if (ptr->type == TokenType::NUM_FLOAT) stream << "     Float: " << (ptr->float_);
 		else if (ptr->type == TokenType::STRING) stream << "    String: " << *(ptr->str);
 		else if (ptr->hasStr) stream << "        ID: " << *(ptr->str);
-		else stream << "            " << static_cast<int>(ptr->type);
+		else stream << "     Token: " << static_cast<int>(ptr->type);
 		stream << '\n';
 	}
 	/**/
@@ -395,17 +402,17 @@ int compiler::parseNumber(NoDestructToken& token) {
 	return 0;
 }
 
-int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, std::ostream& stream) {
+int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
 	/*
-	
+
 	ok ok ok thinking about identifiers and resolving scope
 	So when we read each identifier we'll give it a number because that's easier than using strings
 
 	But then how does the AST determine scope? Well that's a language design choice... so how should the language determine scope?
 	Shit. I actually have to design the language now.
-	
+
 	*/
 
 	std::unordered_map<std::string, int> ids;
@@ -435,7 +442,7 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, std:
 				} else { // Otherwise generate a new number
 					ids.emplace(std::pair<std::string, int>(*(ptr->str), numIds));
 					nodeList.emplace_back(new ExprIdentifier(numIds));
-					stream << "New ID [" << numIds << "]: " << *(ptr->str) << '\n';
+					stream << "New ID (" << numIds << "): " << *(ptr->str) << '\n';
 					numIds++;
 				}
 				// Delete the string
@@ -460,7 +467,9 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, std:
 	}
 
 	// Call the AST creator (this is a recursive function)
-	condenseAST(nodeList, outputList, nodeList.begin(), NodeType::NONE);
+	condenseAST(nodeList, outputList, nodeList.begin(), NodeType::NONE, compileSettings, stream);
+
+	stream << '\n';
 
 	// Print the output list (more like a tree at this point)
 	outputList.print(stream, 0);
@@ -468,7 +477,7 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, std:
 	return 0;
 }
 
-int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::NodeList::iterator start, AST::NodeType type) {
+int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 	// parameter type will be NONE, PAREN_GROUP, SQUARE_GROUP, CURLY_GROUP
 
@@ -495,7 +504,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					parenGroup = new NodeParenGroup();
 					// Call the AST creator, recursively, at the new start location
 					// It will output to the parengroup
-					condenseAST(inputList, parenGroup->nodeList, std::next(ptr), NodeType::PAREN_GROUP);
+					condenseAST(inputList, parenGroup->nodeList, std::next(ptr), NodeType::PAREN_GROUP, compileSettings, stream);
 
 					// If the parens contain only one item, and that evaluates as an expression,
 					// then insert the expression and delete the group
@@ -527,7 +536,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// Opening square bracket, same logic as the parentheses
 				case TokenType::LEFT_SQUARE:
 					squareGroup = new NodeSquareGroup();
-					condenseAST(inputList, squareGroup->nodeList, std::next(ptr), NodeType::SQUARE_GROUP);
+					condenseAST(inputList, squareGroup->nodeList, std::next(ptr), NodeType::SQUARE_GROUP, compileSettings, stream);
 
 					inputList.insert(ptr, squareGroup);
 					delete (*ptr);
@@ -541,7 +550,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// Opening curly bracket, same logic as the parentheses
 				case TokenType::LEFT_CURLY:
 					curlyGroup = new NodeCurlyGroup();
-					condenseAST(inputList, curlyGroup->nodeList, std::next(ptr), NodeType::CURLY_GROUP);
+					condenseAST(inputList, curlyGroup->nodeList, std::next(ptr), NodeType::CURLY_GROUP, compileSettings, stream);
 
 					inputList.insert(ptr, curlyGroup);
 					delete (*ptr);
@@ -617,7 +626,7 @@ process:
 	ExprBinop* binop;
 	Expr* left;
 	Expr* right;
-	ExprType resultType;
+	PrimType resultType;
 
 	// Pass 1: Multiplication and Division
 	// Loop through the list of nodes (left to right)
@@ -641,24 +650,30 @@ process:
 				// The left and right expressions, and the result type (not set yet)
 				left = static_cast<Expr*>(*std::prev(ptr));
 				right = static_cast<Expr*>(*pptr);
-				resultType = ExprType::UNKNOWN;
+				resultType = PrimType::UNKNOWN;
 
+				// For now, only allow arithmetic on primitive types
+				// TODO : Operator overrides for more complicated types?
+				if (!left->evalType.isPrim() || !right->evalType.isPrim()) {
+					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
+				}
 				// Checks the types against the patterns to see what casting is necessary and what the result type will be
 				for (const ArithmeticBinopPattern& pattern : arithmeticBinopPatterns) {
-					if ((left->evalType == pattern.aType && right->evalType == pattern.bType) || (left->evalType == pattern.bType && right->evalType == pattern.aType)) {
+					if ((left->evalType.getPrim() == pattern.aType && right->evalType.getPrim() == pattern.bType) ||
+						(left->evalType.getPrim() == pattern.bType && right->evalType.getPrim() == pattern.aType)) {
 						resultType = pattern.resultType;
 						// Apply casting if necessary
-						if (left->evalType != resultType) {
+						if (left->evalType.getPrim() != resultType) {
 							left = new ExprCast(left, resultType);
 						}
-						if (right->evalType != resultType) {
+						if (right->evalType.getPrim() != resultType) {
 							right = new ExprCast(right, resultType);
 						}
 						break;
 					}
 				}
 				// If none of the patterns matched, throw an error
-				if (resultType == ExprType::UNKNOWN) {
+				if (resultType == PrimType::UNKNOWN) {
 					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
 				}
 
@@ -689,26 +704,37 @@ process:
 
 				left = static_cast<Expr*>(*std::prev(ptr));
 				right = static_cast<Expr*>(*pptr);
-				resultType = ExprType::UNKNOWN;
+				resultType = PrimType::UNKNOWN;
 
+				// For now, only allow arithmetic on primitive types
+				if (!left->evalType.isPrim() || !right->evalType.isPrim()) {
+					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
+				}
+				// Checks the types against the patterns to see what casting is necessary and what the result type will be
 				for (const ArithmeticBinopPattern& pattern : arithmeticBinopPatterns) {
-					if ((left->evalType == pattern.aType && right->evalType == pattern.bType) || (left->evalType == pattern.bType && right->evalType == pattern.aType)) {
+					if ((left->evalType.getPrim() == pattern.aType && right->evalType.getPrim() == pattern.bType) ||
+						(left->evalType.getPrim() == pattern.bType && right->evalType.getPrim() == pattern.aType)) {
 						resultType = pattern.resultType;
-						if (left->evalType != resultType) {
+						// Apply casting if necessary
+						if (left->evalType.getPrim() != resultType) {
 							left = new ExprCast(left, resultType);
 						}
-						if (right->evalType != resultType) {
+						if (right->evalType.getPrim() != resultType) {
 							right = new ExprCast(right, resultType);
 						}
 						break;
 					}
 				}
-				if (resultType == ExprType::UNKNOWN) {
+				// If none of the patterns matched, throw an error
+				if (resultType == PrimType::UNKNOWN) {
 					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
 				}
 
+				// Create a binop node
 				binop = new ExprBinop(left, right, flag ? OpType::ADD : OpType::SUB, resultType, (*ptr)->line, (*ptr)->column);
+				// Delete the token node
 				delete (*ptr);
+				// Replace the old nodes with the new one in the list
 				ptr = outputList.erase(std::prev(ptr), std::next(pptr));
 				ptr = outputList.insert(ptr, binop);
 				break;
@@ -718,9 +744,8 @@ process:
 	return 0;
 }
 
-#define ASM_WRITERAW(thing, sz) outputFile.write(thing, sz); byteCounter += sz
-#define ASM_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
-
+#define CMP_WRITERAW(thing, sz) outputFile.write(thing, sz); byteCounter += sz
+#define CMP_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
 
 compiler::RegManager::RegManager() {
 	for (int i = 0; i < register_::NUM_WORD_REGISTERS; i++) {
@@ -775,7 +800,7 @@ bool compiler::RegManager::isByte(reg_t reg) {
 	return reg >= register_::B0;
 }
 
-int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream) {
+int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 	/*
 	So how the hell is this supposed to work?
@@ -803,13 +828,13 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::
 	opcode_t opcode = 0;
 
 	int_t startPos = 4;
-	ASM_WRITE(startPos, int_t);
+	CMP_WRITE(startPos, int_t);
 
 	if ((*list.begin())->isExpr) {
-		rid1 = makeExprBytecode(static_cast<Expr*>(*list.begin()), reg, outputFile, byteCounter, stream);
+		rid1 = makeExprBytecode(static_cast<Expr*>(*list.begin()), reg, outputFile, byteCounter, compileSettings, stream);
 		opcode = opcode::R_PRNT_F;
-		ASM_WRITE(opcode, opcode_t);
-		ASM_WRITE(rid1, reg_t);
+		CMP_WRITE(opcode, opcode_t);
+		CMP_WRITE(rid1, reg_t);
 	}
 
 	// (END) TEMP!
@@ -818,7 +843,7 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::
 	return 0;
 }
 
-types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
 	reg_t ridOut = 0;
@@ -835,55 +860,62 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, std::i
 		case NodeType::INT:
 			ridOut = reg.getWord();
 			opcode = opcode::MOV_W;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(static_cast<ExprInt*>(expr)->int_, int_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(static_cast<ExprInt*>(expr)->int_, int_t);
 			break;
 		case NodeType::FLOAT:
 			ridOut = reg.getWord();
 			opcode = opcode::MOV_W;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(static_cast<ExprFloat*>(expr)->float_, float_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(static_cast<ExprFloat*>(expr)->float_, float_t);
 			break;
 		case NodeType::BOOL:
 			ridOut = reg.getByte();
 			opcode = opcode::MOV_B;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(static_cast<ExprBool*>(expr)->bool_, char_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(static_cast<ExprBool*>(expr)->bool_, char_t);
 			break;
 		case NodeType::CHAR:
 			ridOut = reg.getByte();
 			opcode = opcode::MOV_B;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(static_cast<ExprChar*>(expr)->char_, char_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(static_cast<ExprChar*>(expr)->char_, char_t);
 			break;
 
 			// Other types are more complicated and their logic is in separate functions
 		case NodeType::CAST:
 			exprCast = static_cast<ExprCast*>(expr);
-			ridOut = makeCastBytecode(exprCast, reg, outputFile, byteCounter, stream);
+			ridOut = makeCastBytecode(exprCast, reg, outputFile, byteCounter, compileSettings, stream);
 			break;
 		case NodeType::BINOP:
 			exprBinop = static_cast<ExprBinop*>(expr);
-			ridOut = makeBinopBytecode(exprBinop, reg, outputFile, byteCounter, stream);
+			ridOut = makeBinopBytecode(exprBinop, reg, outputFile, byteCounter, compileSettings, stream);
 			break;
 	}
 
 	return ridOut;
 }
 
-bool compiler::AST::isWord(ExprType type) {
-	return type == ExprType::INT || type == ExprType::FLOAT;
+bool compiler::AST::isWord(PrimType type) {
+	return type == PrimType::INT || type == PrimType::FLOAT;
 }
 
-types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
 	reg_t ridOut = 0;
-	reg_t rid = makeExprBytecode(expr->source, reg, outputFile, byteCounter, stream);
+	reg_t rid = makeExprBytecode(expr->source, reg, outputFile, byteCounter, compileSettings, stream);
+
+	// Something like this shouldn't have made it through the AST construction
+	// but if it did this would catch it
+	if (!expr->evalType.isPrim() || !expr->source->evalType.isPrim()) {
+		throw CompilerException(CompilerException::UNKNOWN_CAST, -1, -1);
+	}
+
 	// opcodeInt could be a regular opcode or it could be negative for a special case
-	int opcodeInt = castOpcodes[static_cast<int>(expr->source->evalType)][static_cast<int>(expr->evalType)];
+	int opcodeInt = castOpcodes[expr->source->evalType.primType][expr->evalType.primType];
 	opcode_t opcode = 0;
 
 	// TODO : this
@@ -900,59 +932,59 @@ types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, st
 			// was being used there are some cases where you could just return register_::FZ
 			// but other times you can't know if that will be modified so yeah
 			opcode = opcode::I_FLAG;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(rid, reg_t);
 			reg.free(rid);
 
 			opcode = opcode::R_MOV_B;
 			ridOut = reg.getByte();
 			rid = register_::FZ;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(rid, reg_t);
 			break;
 
 		case -4: // float to bool... same idea
 			opcode = opcode::F_FLAG;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(rid, reg_t);
 			reg.free(rid);
 
 			opcode = opcode::R_MOV_B;
 			ridOut = reg.getByte();
 			rid = register_::FZ;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(rid, reg_t);
 			break;
 
 		case -5: // char to bool... same idea
 			opcode = opcode::C_FLAG;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(rid, reg_t);
 
 			opcode = opcode::R_MOV_B;
 			// Don't have to request a new register here because we
 			// don't care about preserving the old byte value
 			ridOut = rid;
 			rid = register_::FZ;
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(rid, reg_t);
 			break;
 
 
 		default: // opcode is the casting opcode
 			opcode = static_cast<opcode_t>(opcodeInt);
 			// TODO : choose to get word or byte based on cast result type
-			if (isWord(expr->evalType)) {
+			if (isWord(expr->evalType.getPrim())) {
 				ridOut = reg.isWord(rid) ? rid : reg.getWord();
 			} else {
 				ridOut = reg.isByte(rid) ? rid : reg.getByte();
 			}
-			ASM_WRITE(opcode, opcode_t);
-			ASM_WRITE(ridOut, reg_t);
-			ASM_WRITE(rid, reg_t);
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(ridOut, reg_t);
+			CMP_WRITE(rid, reg_t);
 			if (rid != ridOut) reg.free(rid);
 			break;
 	}
@@ -960,15 +992,21 @@ types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, st
 	return ridOut;
 }
 
-types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream) {
+types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
-	reg_t ridLeft = makeExprBytecode(expr->left, reg, outputFile, byteCounter, stream);
-	reg_t ridRight = makeExprBytecode(expr->right, reg, outputFile, byteCounter, stream);
+	reg_t ridLeft = makeExprBytecode(expr->left, reg, outputFile, byteCounter, compileSettings, stream);
+	reg_t ridRight = makeExprBytecode(expr->right, reg, outputFile, byteCounter, compileSettings, stream);
 	opcode_t opcode = 0;
 
+	// Something like this shouldn't have made it through the AST construction
+	// but if it did this would catch it
+	if (!expr->evalType.isPrim()) {
+		throw CompilerException(CompilerException::UNKNOWN_CAST, -1, -1);
+	}
+
 	// Look up the correct opcode
-	int opcodeInt = binopOpcodes[static_cast<int>(expr->opType)][static_cast<int>(expr->evalType)];
+	int opcodeInt = binopOpcodes[static_cast<int>(expr->opType)][expr->evalType.primType];
 
 	// Somehow we're adding types that shouldn't be added
 	if (opcodeInt == -1) throw CompilerException(CompilerException::UNKNOWN_BINOP, -1, -1);
@@ -976,12 +1014,22 @@ types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, 
 	opcode = static_cast<opcode_t>(opcodeInt);
 	// Efficiency-wise, we're doing a piss-poor job of conserving values in registers
 	// if they're used again later but y'know this is just my trying things
-	ASM_WRITE(opcode, opcode_t);
-	ASM_WRITE(ridLeft, reg_t);
-	ASM_WRITE(ridLeft, reg_t);
-	ASM_WRITE(ridRight, reg_t);
+	CMP_WRITE(opcode, opcode_t);
+	CMP_WRITE(ridLeft, reg_t);
+	CMP_WRITE(ridLeft, reg_t);
+	CMP_WRITE(ridRight, reg_t);
 
 	reg.free(ridRight);
 
 	return ridLeft;
 }
+
+/*
+TODO!
+
+So I did some thinking...
+
+The type system has to be overhauled... ExprType can't just be an enum
+RegManager has to be overhauled... it needs to manage scopes now, so it'll probably keep track of local variables and whatnot as well as registers
+
+*/

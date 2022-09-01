@@ -201,8 +201,8 @@ namespace compiler {
 			BINOP
 		};
 
-		// Types that an expression can evaluate to
-		enum class ExprType {
+		// Types that an expression can evaluate to (OLD)
+		enum class PrimType {
 			UNKNOWN,
 			INT,
 			FLOAT,
@@ -210,15 +210,56 @@ namespace compiler {
 			CHAR
 		};
 
-		bool isWord(ExprType type);
+		bool isWord(PrimType type);
 
 		// Names of expression types (for printing to console)
-		constexpr const char* const exprTypeNames[] = {
+		constexpr const char* const primTypeNames[] = {
 			"Unknown",
 			"Int",
 			"Float",
 			"Bool",
 			"Char"
+		};
+
+
+		// How expressions keep track of what type they'll evaluate to
+		struct EvalType {
+			int name; // Name is an identifier that's been converted to a number id rather than a string
+			int primType;
+
+			EvalType() : name(-1), primType(-1) {}
+			EvalType(bool primTypeIn) : name(-1), primType(primTypeIn) {}
+			EvalType(PrimType primTypeIn) : name(-1) {
+				primType = static_cast<int>(primTypeIn);
+			}
+			EvalType(int nameIn) : name(nameIn), primType(-1) {}
+			EvalType(int nameIn, bool primTypeIn) : name(nameIn), primType(primTypeIn) {}
+			EvalType(int nameIn, PrimType primTypeIn) : name(nameIn) {
+				primType = static_cast<int>(primTypeIn);
+			}
+			virtual ~EvalType() {}
+
+			const char* printName() const {
+				return primType > -1 ? primTypeNames[primType] : "Comp Type";
+			}
+			PrimType getPrim() const {
+				return primType > -1 ? static_cast<PrimType>(primType) : PrimType::UNKNOWN;
+			}
+			bool isPrim() const {
+				return primType > -1;
+			}
+		};
+
+		struct CompoundType : EvalType {
+			EvalType* returnType;
+			EvalType(*memberTypes)[];
+
+			CompoundType() : EvalType(), returnType(nullptr), memberTypes(nullptr) {}
+			CompoundType(int nameIn) : EvalType(nameIn), returnType(nullptr), memberTypes(nullptr) {}
+			~CompoundType() {
+				if (returnType != nullptr) delete returnType;
+				if (memberTypes != nullptr) delete memberTypes;
+			}
 		};
 
 		// Types of operations
@@ -241,27 +282,27 @@ namespace compiler {
 
 		// A pattern for the possible type patterns for a binop, and their implicit type casts
 		struct ArithmeticBinopPattern {
-			ExprType resultType;
-			ExprType aType;
-			ExprType bType;
+			PrimType resultType;
+			PrimType aType;
+			PrimType bType;
 
-			ArithmeticBinopPattern(ExprType r, ExprType a, ExprType b) : resultType(r), aType(a), bType(b) {}
-			ArithmeticBinopPattern(ExprType a, ExprType b) : resultType(a), aType(a), bType(b) {}
-			ArithmeticBinopPattern(ExprType a) : resultType(a), aType(a), bType(a) {}
+			ArithmeticBinopPattern(PrimType r, PrimType a, PrimType b) : resultType(r), aType(a), bType(b) {}
+			ArithmeticBinopPattern(PrimType a, PrimType b) : resultType(a), aType(a), bType(b) {}
+			ArithmeticBinopPattern(PrimType a) : resultType(a), aType(a), bType(a) {}
 		};
 
 		// The valid patterns
 		const ArithmeticBinopPattern arithmeticBinopPatterns[] = {
-			{ExprType::INT},
-			{ExprType::FLOAT},
-			{ExprType::CHAR},
-			{ExprType::FLOAT, ExprType::INT},
-			{ExprType::FLOAT, ExprType::CHAR},
-			{ExprType::FLOAT, ExprType::BOOL},
-			{ExprType::INT, ExprType::CHAR},
-			{ExprType::INT, ExprType::BOOL},
-			{ExprType::CHAR, ExprType::BOOL},
-			{ExprType::INT, ExprType::BOOL, ExprType::BOOL}
+			{PrimType::INT},
+			{PrimType::FLOAT},
+			{PrimType::CHAR},
+			{PrimType::FLOAT, PrimType::INT},
+			{PrimType::FLOAT, PrimType::CHAR},
+			{PrimType::FLOAT, PrimType::BOOL},
+			{PrimType::INT, PrimType::CHAR},
+			{PrimType::INT, PrimType::BOOL},
+			{PrimType::CHAR, PrimType::BOOL},
+			{PrimType::INT, PrimType::BOOL, PrimType::BOOL}
 		};
 
 		//
@@ -304,7 +345,7 @@ namespace compiler {
 		// A vector of pointers to nodes
 		/*	It's important that this is a vector of POINTERS. The ownership of a node pointer may
 			be transferred, for example it may start as part of the original node list but end up
-			as the right side of an addition expression. It is easier to transfor a pointer to the 
+			as the right side of an addition expression. It is easier to transfor a pointer to the
 			node than to have to copy the entire node.
 		*/
 		class NodeList : public std::list<Node*> {
@@ -368,9 +409,9 @@ namespace compiler {
 
 		// A subclass of node for anything that evaluates to an expression
 		struct Expr : public Node {
-			const ExprType evalType;
+			const EvalType evalType;
 
-			Expr(NodeType typeIn, ExprType evalTypeIn, int lineIn, int columnIn) : Node(typeIn, true, lineIn, columnIn), evalType(evalTypeIn) {}
+			Expr(NodeType typeIn, EvalType evalTypeIn, int lineIn, int columnIn) : Node(typeIn, true, lineIn, columnIn), evalType(evalTypeIn) {}
 		};
 
 		// A subclass of node that acts as a wrapper for a token
@@ -383,7 +424,7 @@ namespace compiler {
 			// still destroyed normally by the TokenList that they are a part of
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "Token: " << static_cast<int>(token->type) << '\n';
+				stream << std::string(indent, '\t') << "[Token] " << static_cast<int>(token->type) << '\n';
 			}
 		};
 
@@ -391,8 +432,8 @@ namespace compiler {
 		struct ExprInt : public Expr {
 			int_t int_;
 
-			ExprInt(int_t intIn) : Expr(NodeType::INT, ExprType::INT, -1, -1), int_(intIn) {}
-			ExprInt(NoDestructToken* token) : Expr(NodeType::INT, ExprType::INT, token->line, token->column), int_(token->int_) {}
+			ExprInt(int_t intIn) : Expr(NodeType::INT, EvalType(PrimType::INT), -1, -1), int_(intIn) {}
+			ExprInt(NoDestructToken* token) : Expr(NodeType::INT, EvalType(PrimType::INT), token->line, token->column), int_(token->int_) {}
 			// TODO : Change this to take a Token as input, and adopt the line/column automatically
 
 			void print(std::ostream& stream, int indent) {
@@ -404,8 +445,8 @@ namespace compiler {
 		struct ExprFloat : public Expr {
 			float_t float_;
 
-			ExprFloat(float_t floatIn) : Expr(NodeType::FLOAT, ExprType::FLOAT, -1, -1), float_(floatIn) {}
-			ExprFloat(NoDestructToken* token) : Expr(NodeType::FLOAT, ExprType::FLOAT, token->line, token->column), float_(token->float_) {}
+			ExprFloat(float_t floatIn) : Expr(NodeType::FLOAT, EvalType(PrimType::FLOAT), -1, -1), float_(floatIn) {}
+			ExprFloat(NoDestructToken* token) : Expr(NodeType::FLOAT, EvalType(PrimType::FLOAT), token->line, token->column), float_(token->float_) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[Float] " << float_ << '\n';
@@ -416,8 +457,8 @@ namespace compiler {
 		struct ExprBool : public Expr {
 			bool_t bool_;
 
-			ExprBool(bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, -1, -1), bool_(boolIn) {}
-			ExprBool(NoDestructToken* token, bool_t boolIn) : Expr(NodeType::BOOL, ExprType::BOOL, token->line, token->column), bool_(boolIn) {}
+			ExprBool(bool_t boolIn) : Expr(NodeType::BOOL, EvalType(PrimType::BOOL), -1, -1), bool_(boolIn) {}
+			ExprBool(NoDestructToken* token, bool_t boolIn) : Expr(NodeType::BOOL, EvalType(PrimType::BOOL), token->line, token->column), bool_(boolIn) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[Bool] " << static_cast<int>(bool_) << '\n';
@@ -428,8 +469,8 @@ namespace compiler {
 		struct ExprChar : public Expr {
 			char_t char_;
 
-			ExprChar(char_t charIn) : Expr(NodeType::CHAR, ExprType::CHAR, -1, -1), char_(charIn) {}
-			ExprChar(NoDestructToken* token) : Expr(NodeType::CHAR, ExprType::CHAR, token->line, token->column), char_(token->char_) {}
+			ExprChar(char_t charIn) : Expr(NodeType::CHAR, EvalType(PrimType::CHAR), -1, -1), char_(charIn) {}
+			ExprChar(NoDestructToken* token) : Expr(NodeType::CHAR, EvalType(PrimType::CHAR), token->line, token->column), char_(token->char_) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[Char] " << char_ << '\n';
@@ -444,10 +485,10 @@ namespace compiler {
 		struct ExprIdentifier : public Expr {
 			int id;
 
-			ExprIdentifier(int idIn) : Expr(NodeType::IDENTIFIER, ExprType::UNKNOWN, -1, -1), id(idIn) {}
+			ExprIdentifier(int idIn) : Expr(NodeType::IDENTIFIER, EvalType(PrimType::UNKNOWN), -1, -1), id(idIn) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] ID: " << id << '\n';
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << id << '\n';
 			}
 		};
 
@@ -457,13 +498,13 @@ namespace compiler {
 		struct ExprCast : public Expr {
 			Expr* source;
 
-			ExprCast(Expr* sourceIn, ExprType typeIn) : Expr(NodeType::CAST, typeIn, sourceIn->line, sourceIn->column), source(sourceIn) {}
+			ExprCast(Expr* sourceIn, EvalType typeIn) : Expr(NodeType::CAST, typeIn, sourceIn->line, sourceIn->column), source(sourceIn) {}
 			~ExprCast() {
 				delete source;
 			}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] Cast from\n";
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] Cast from\n";
 				source->print(stream, indent + 1);
 			}
 		};
@@ -474,14 +515,14 @@ namespace compiler {
 			Expr* right;
 			OpType opType;
 
-			ExprBinop(Expr* leftIn, Expr* rightIn, OpType opTypeIn, ExprType typeIn, int lineIn, int columnIn) : Expr(NodeType::BINOP, typeIn, lineIn, columnIn), left(leftIn), right(rightIn), opType(opTypeIn) {}
+			ExprBinop(Expr* leftIn, Expr* rightIn, OpType opTypeIn, EvalType typeIn, int lineIn, int columnIn) : Expr(NodeType::BINOP, typeIn, lineIn, columnIn), left(leftIn), right(rightIn), opType(opTypeIn) {}
 			~ExprBinop() {
 				delete left;
 				delete right;
 			}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << exprTypeNames[static_cast<int>(evalType)] << "] Binop " << opTypeNames[static_cast<int>(opType)] << '\n';
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] Binop " << opTypeNames[static_cast<int>(opType)] << '\n';
 				left->print(stream, indent + 1);
 				stream << std::string(indent + 1, '\t') << "------\n";
 				right->print(stream, indent + 1);
@@ -583,7 +624,7 @@ namespace compiler {
 		bool isByte(reg_t reg);
 	};
 
-	// Gets the opcode for a cast. Used as castOpcodes[ExprType:: *source* ][ExprType:: *target* ]
+	// Gets the opcode for a cast. Used as castOpcodes[EvalType:: *source* ][EvalType:: *target* ]
 	// -1 means error (we have an unknown type for some reason)
 	// -2 means do nothing (no cast necessary)
 	// -3, -4, -5 are special-case conversions to bool 
@@ -595,7 +636,7 @@ namespace compiler {
 		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-2}
 	};
 
-	// Gets the opcode for a binop. Used as binopOpcodes[OpType:: *type* ][ExprType:: *operand type*]
+	// Gets the opcode for a binop. Used as binopOpcodes[OpType:: *type* ][EvalType:: *operand type*]
 	constexpr int binopOpcodes[4][5] = {
 		{-1, opcode::I_ADD, opcode::F_ADD, -1, opcode::C_ADD },
 		{-1, opcode::I_SUB, opcode::F_SUB, -1, opcode::C_SUB },
@@ -609,14 +650,14 @@ namespace compiler {
 	int compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& settings);
 	int compile_(std::iostream& inputFile, std::iostream& outputFile, CompilerSettings& settings, std::ostream& stream);
 
-	int tokenize(TokenList& tokenList, std::iostream& file, std::ostream& stream);
+	int tokenize(TokenList& tokenList, std::iostream& file, CompilerSettings& compileSettings, std::ostream& stream);
 	int parseNumber(NoDestructToken& token);
 
-	int constructAST(AST::NodeList& outputList, TokenList& tokenList, std::ostream& stream);
-	int condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::NodeList::iterator start, AST::NodeType type);
+	int constructAST(AST::NodeList& outputList, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream);
+	int condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream);
 
-	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, std::ostream& stream);
-	reg_t makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
-	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
-	reg_t makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, std::ostream& stream);
+	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream);
+	reg_t makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
+	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
+	reg_t makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
 }
