@@ -46,8 +46,8 @@
     <None Include="AssemblyExamples\fibonacci_fast.eze" />
     <None Include="AssemblyExamples\fibonacci_recursive.azm" />
     <None Include="AssemblyExamples\fibonacci_recursive.eze" />
-    <None Include="AssemblyExamples\guessing_game_wip.azm" />
-    <None Include="AssemblyExamples\guessing_game_wip.eze" />
+    <None Include="AssemblyExamples\guessing_game.azm" />
+    <None Include="AssemblyExamples\guessing_game.eze" />
     <None Include="AssemblyExamples\simple_user_input.azm" />
     <None Include="AssemblyExamples\simple_user_input.eze" />
     <None Include="CompilerExamples\example1.eze" />

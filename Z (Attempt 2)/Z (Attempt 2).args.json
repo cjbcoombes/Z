@@ -20,11 +20,11 @@
     },
     {
       "Id": "0881402b-2f0a-4dcc-8eb6-8314694cee22",
-      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\fibonacci_fast.azm\" \".\\AssemblyExamples\\fibonacci_fast.eze\""
+      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\fibonacci_recursive.azm\" \".\\AssemblyExamples\\fibonacci_recursive.eze\""
     },
     {
       "Id": "3d4598c8-3a99-41c7-82be-777f607aaa3f",
-      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\guessing_game_wip.azm\" \".\\AssemblyExamples\\guessing_game_wip.eze\""
+      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\guessing_game.azm\" \".\\AssemblyExamples\\guessing_game.eze\""
     }
   ]
 }

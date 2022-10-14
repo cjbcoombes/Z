@@ -92,10 +92,10 @@
     <None Include="AssemblyExamples\simple_user_input.eze">
       <Filter>AssemblyExamples</Filter>
     </None>
-    <None Include="AssemblyExamples\guessing_game_wip.azm">
+    <None Include="AssemblyExamples\guessing_game.azm">
       <Filter>AssemblyExamples</Filter>
     </None>
-    <None Include="AssemblyExamples\guessing_game_wip.eze">
+    <None Include="AssemblyExamples\guessing_game.eze">
       <Filter>AssemblyExamples</Filter>
     </None>
     <None Include="AssemblyExamples\babylonian_sqrt.azm">

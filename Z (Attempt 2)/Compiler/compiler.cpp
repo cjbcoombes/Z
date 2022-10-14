@@ -50,7 +50,7 @@ int compiler::compile_(std::iostream& inputFile, std::iostream& outputFile, Comp
 	AST::NodeList ast;
 	constructAST(ast, tokenList, compileSettings, stream);
 
-	stream << "\nBytecode:\n";
+	stream << "\n"; //Bytecode:\n";
 
 	makeBytecode(ast, outputFile, compileSettings, stream);
 
@@ -411,7 +411,7 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 	So when we read each identifier we'll give it a number because that's easier than using strings
 
 	But then how does the AST determine scope? Well that's a language design choice... so how should the language determine scope?
-	Shit. I actually have to design the language now.
+	Oh no. I actually have to design the language now.
 
 	*/
 
@@ -1029,7 +1029,20 @@ TODO!
 
 So I did some thinking...
 
-The type system has to be overhauled... ExprType can't just be an enum
 RegManager has to be overhauled... it needs to manage scopes now, so it'll probably keep track of local variables and whatnot as well as registers
 
+
+
+How to do scopes in the AST:
+- Have a `Scope` object that keeps a list of identifiers and their types in the current scope
+- There's a global Scope, plus a new one created for each `NodeCurlyGroup`
+- Each scope keeps track of its parent
+- Add a pass in `condenseAST` before any of the other ones. That pass will find each `ExprIdentifier` and bind it somehow to the particular
+	instance of the identifier in the current scope, rather than just the identifier's name in general
+
+Then in the bytecode:
+- The bytecode maker will have access to the same `Scope` and `ExprIdentifier` objects, so it can easily sort out what refers to what
+- For each `Scope` object a stack frame will be created? Or perhaps only for functions, and then other scopes (like in if statements) will build on the current stack
+
+OR I choose not to have block-scoping but just function-scoping, in which case I have to figure out how to actually do that (i.e. how to identify which blocks are functions and which aren't)
 */

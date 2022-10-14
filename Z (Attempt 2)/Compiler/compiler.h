@@ -317,8 +317,12 @@ namespace compiler {
 
 		// Data that is stored about an identifier (wow!)
 		struct IdentifierData {
-			std::string* str;
+			int name;
 			IdentifierType type;
+		};
+
+		class Scope {
+
 		};
 
 		//
@@ -407,6 +411,12 @@ namespace compiler {
 
 		//
 
+		/*struct NodeType : public Node {
+
+		};*/
+
+		//
+
 		// A subclass of node for anything that evaluates to an expression
 		struct Expr : public Node {
 			const EvalType evalType;
@@ -483,12 +493,12 @@ namespace compiler {
 		// TODO: At some point there'll be a dictionary of declared identifiers that this should refer to
 		// instead of holding its own data
 		struct ExprIdentifier : public Expr {
-			int id;
+			int name;
 
-			ExprIdentifier(int idIn) : Expr(NodeType::IDENTIFIER, EvalType(PrimType::UNKNOWN), -1, -1), id(idIn) {}
+			ExprIdentifier(int nameIn) : Expr(NodeType::IDENTIFIER, EvalType(PrimType::UNKNOWN), -1, -1), name(nameIn) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << id << '\n';
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << name << '\n';
 			}
 		};
 

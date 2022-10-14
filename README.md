@@ -1,8 +1,12 @@
-For information on the bytecode, see the README in the appropriate project folder. The most up-to-date one (which is not very) is in `Z (Attempt 2)`
+# VM, Bytecode, Assembler, and Compiler
+
+For information on what I've actually implemented so far, see the README in the folder `Z (Attempt 2)`.
 
 # The Language
 
-One of the core concepts of **Z** is the way it handles types. Functions and sets, as well as primitives are first-class, and they each have a well-defined type. Some types are "compatible," meaning that they can be implicitly converted. The other key idea is a "named type," where the name can be used for variable names, parameter names, or accessor names depending on the context.
+The following are mostly informal ideas that have come to mind that I'd like to implement into the language. They've yet to be turned into formal specifications or put into the compiler.
+
+Functions and sets, as well as primitives are first-class, and they each have a well-defined type. Some types are "compatible," meaning that they can be implicitly converted. The other key idea is a "named type," where the name can be used for variable names, parameter names, or accessor names depending on the context.
 ```c
 // Type names are in angle brackets
 <int>
