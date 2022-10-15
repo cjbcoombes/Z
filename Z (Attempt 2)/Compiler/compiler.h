@@ -411,12 +411,6 @@ namespace compiler {
 
 		//
 
-		/*struct NodeType : public Node {
-
-		};*/
-
-		//
-
 		// A subclass of node for anything that evaluates to an expression
 		struct Expr : public Node {
 			const EvalType evalType;

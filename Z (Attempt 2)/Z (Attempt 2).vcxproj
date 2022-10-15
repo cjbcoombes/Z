@@ -55,6 +55,10 @@
     <None Include="CompilerExamples\fibonacci.z" />
     <None Include="README.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="ASTPseudo.txt" />
+    <Text Include="TokenizerPsuedo.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

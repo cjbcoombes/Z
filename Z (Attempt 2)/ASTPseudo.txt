@@ -1,0 +1,52 @@
+--------------------------------------------------------------------
+AST construction pseudocode
+--------------------------------------------------------------------
+
+Input: A list of nodes
+Output: A single root node with children forming the abstract syntax tree
+Example Input:
+	[Int 2] [Token -] [Token (] [Float 3.1] [Token *] [Bool 2] [Token +] [Int -2] [Token )]
+
+FUNCTION condenseAST:
+	SCAN for opening/closing parentheses (outermost pairs):
+		CALL condenseAST on the contents withen the parentheses (replacing the entire parentheses group with the tree returned by condenseAST)
+		CONTINUE scanning until there are no more parentheses
+
+	SCAN for [Token *] or [Token /]:
+		IF the neighbors of the token are expressions:
+			CREATE an [Expression *] or [Expression /] node with the neighbor expressions as children (apply appropriate type casts too)
+		ELSE throw error (Cannot multiply/divide non-expressions)
+
+	SCAN for [Token +] or [Token -]:
+		IF the neighbors of the token are expressions:
+			CREATE an [Expression +] or [Expression -] node with the neighbor expressions as children (apply appropriate type casts too)
+		ELSE throw error (Cannot add/subtract non-expressions)
+
+
+
+--------------------------------------------------------------------
+AST Node Types:
+--------------------------------------------------------------------
+* means it is an expression
+
+Node: (just a parent type for polymorphism)
+
+Token: holds a token. All of these should be replaced by the time the full AST is constructed
+
+Parentheses Group: a list of nodes (if there is only one node, replace the entire parentheses group with that node)
+Square Bracket Group: a list of nodes
+Curly Bracket Group: a list of nodes
+
+*Expression: (just a parent type for polymorphism)
+
+*Integer: a raw integer
+*Float: a raw float
+*Boolean: a raw boolean
+*Char: a raw char
+
+*Identifier: an identifier, such as a variable
+
+*Cast: A type cast. Has one child node to be cast, and a type to cast to
+
+*Binop: A binary operation, such as addition or multiplication. Has two child nodes that are operated on, and a type to specify which operation
+

@@ -1,1 +1,7 @@
-5 + 3.7 * (9 - (4 + true) - (3 / 1.9))
+float identifierName = "A string value";
+
+/* This is
+a 
+block comment */
+
+num += someFunction(3.4 + (x * -2));

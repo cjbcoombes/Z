@@ -1,0 +1,60 @@
+--------------------------------------------------------------------
+Tokenization Pseudocode
+--------------------------------------------------------------------
+
+Input: A file stream of the source file
+Output: A vector of tokens (vector being the c++ implementation of a variable-length array)
+
+General overview of the loop:
+	1. Read character
+	2. If the character is part of an ongoing token (like a string or number), add it to
+	   a buffer and continue
+	3. If the character is not part of an ongoing token, it means that token is complete.
+	   Process that token and add it to the vector, then use the character to start a new
+	   token.
+
+BOOLEAN FLAGS:
+	isComment
+	isBlockComment
+	isStr
+	isEscaped
+	isNumber
+	hasDecimal
+
+FUNCTION tokenize:
+	WHILE the stream has not reached the end of the file:
+		READ the next char from the string
+		CHECK FLAGS that were set based on previous tokens:
+			IF isStr
+				IF isEscaped, apply escape sequence to the char and set isEscaped = false
+				IF char is the end of the string, save the buffer as a string token, add it to the vector, and set isStr = false
+				ELSE add char to the string buffer, and continue the WHILE loop
+			IF isBlockComment
+				IF the previous and current characters are '*' and '/', clear the buffer and set isBlockComment = false
+				ELSE add char to the buffer
+				CONTINUE the WHILE loop
+			IF isComment
+				IF char is '\n', clear the buffer and set isComment = false
+				CONTINUE the WHILE loop
+			IF isNumber
+				IF char is a numeral OR matches the pattern for setting an alternative base OR is a decimal point and hasDecimal is false
+					IF char is a decimal point, set hasDecimal = true
+					ADD char to the buffer and continue the WHILE loop
+
+		IF the previous char was a single-width token (like a plus sign, parenthesis, slash, etc.)
+			IF the previous token and current token form a double-width token (like plus-equals or double-ampersand)
+				ADD the double-width token to the vector, and continue the WHILE loop
+			ELSE add the single-width token to the vector
+
+		IF the current char is a single-width token
+			STORE that in a variable to be checked in the next execution of the WHILE loop
+
+		IF the current char is something that would begin a new token (like a space, newline, single-width token, numeral, etc.)
+			(Note: if execution has made it here, it means that the current char is NOT part of any previous tokens. A new token will
+			start and the previous one will be processed)
+
+			IF isNumber, parse the number and add it to the vector
+			IF the buffer matches a keyword, add it to the vector as a keyword token
+			ELSE the buffer must be an identifier (like a variable name), so add it to the vector as an identifier token
+
+		ADD char to the buffer and continue the WHILE loop

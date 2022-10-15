@@ -114,4 +114,8 @@
       <Filter>CompilerExamples</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="ASTPseudo.txt" />
+    <Text Include="TokenizerPsuedo.txt" />
+  </ItemGroup>
 </Project>

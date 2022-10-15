@@ -161,8 +161,10 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, CompilerSettin
 		} else { // Not a string
 			// If it's a block comment, check to see if it's ended
 			if (isBlockComment) {
-				if (strlen == 1 && c == '/') isBlockComment = false;
-				else if (c == '*') strlen = 1;
+				if (strlen == 1 && c == '/') {
+					strlen = 0;
+					isBlockComment = false;
+				} else if (c == '*') strlen = 1;
 				else strlen = 0;
 				continue;
 			}
@@ -500,6 +502,17 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 				// Opening parenthesis
 				// TODO: Add the line and column to the paren group nodes
 				case TokenType::LEFT_PAREN:
+
+
+
+
+
+
+
+
+
+
+
 					// Create a new paren group
 					parenGroup = new NodeParenGroup();
 					// Call the AST creator, recursively, at the new start location
@@ -510,7 +523,6 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// then insert the expression and delete the group
 					if (parenGroup->nodeList.size() == 1 && (*(parenGroup->nodeList.begin()))->isExpr) {
 						inputList.insert(ptr, *(parenGroup->nodeList.begin()));
-						// (*(parenGroup->nodeList.begin())) = new Node();
 						parenGroup->nodeList.erase(parenGroup->nodeList.begin());
 						delete parenGroup;
 					} else { // Otherwise just insert the group
@@ -531,6 +543,24 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// ptr now points to the next element. This moves it back to point to the
 					// newly inserted stuff
 					ptr--;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					break;
 
 					// Opening square bracket, same logic as the parentheses
