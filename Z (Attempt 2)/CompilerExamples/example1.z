@@ -1,7 +1,2 @@
-float identifierName = "A string value";
-
-/* This is
-a 
-block comment */
-
-num += someFunction(3.4 + (x * -2));
+float.x = ((3.4 + 2) * 7) - false
+x = x - 2

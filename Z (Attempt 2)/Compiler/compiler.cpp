@@ -1,6 +1,7 @@
 #include "compiler.h"
 #include <unordered_map>
 
+int compiler::AST::Scope::scopeCounter = 0;
 
 #define CMP_DEBUG(thing) if (isDebug) stream << IO_DEBUG << thing << IO_NORM "\n"
 
@@ -421,6 +422,7 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 	int numIds = 0;
 
 	NodeList nodeList;
+	nodeList.emplace_back(new Node(-1, -1));
 	// The nodelist starts out filled with wrappers of all of the tokens
 	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
 		// Create appropriate nodes depending on the type (pretty self-explanatory)
@@ -440,10 +442,10 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 				}
 				// If this ID already has a number, use it
 				if (ids.count(*(ptr->str)) > 0) {
-					nodeList.emplace_back(new ExprIdentifier(ids.at(*(ptr->str))));
+					nodeList.emplace_back(new ExprIdentifier(ids.at(*(ptr->str)), ptr->line, ptr->column));
 				} else { // Otherwise generate a new number
 					ids.emplace(std::pair<std::string, int>(*(ptr->str), numIds));
-					nodeList.emplace_back(new ExprIdentifier(numIds));
+					nodeList.emplace_back(new ExprIdentifier(numIds, ptr->line, ptr->column));
 					stream << "New ID (" << numIds << "): " << *(ptr->str) << '\n';
 					numIds++;
 				}
@@ -468,8 +470,11 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 		}
 	}
 
+	Scope::scopeCounter = 1;
+	Scope globalScope = Scope(nullptr);
+
 	// Call the AST creator (this is a recursive function)
-	condenseAST(nodeList, outputList, nodeList.begin(), NodeType::NONE, compileSettings, stream);
+	condenseAST(nodeList, outputList, globalScope, nodeList.begin(), NodeType::NONE, compileSettings, stream);
 
 	stream << '\n';
 
@@ -479,18 +484,22 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 	return 0;
 }
 
-int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream) {
+int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::Scope& scope, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 	// parameter type will be NONE, PAREN_GROUP, SQUARE_GROUP, CURLY_GROUP
 
 	// The main pointer that will iterate through the list
-	NodeList::iterator ptr = start;
+	NodeList::iterator ptr = std::next(start);
 	// A helper pointer (honestly I couldn't think of a better name for this variable thatn pptr)
 	NodeList::iterator pptr;
 	// These may not all be needed but I can't declare them inside the loop/switch
 	NodeParenGroup* parenGroup;
 	NodeSquareGroup* squareGroup;
 	NodeCurlyGroup* curlyGroup;
+	ExprIdentifier* identifier;
+	ExprIdentifier* newIdentifier;
+	std::pair<int, EvalType> idData;
+	PrimType primType;
 
 	// Loop through the input list, starting at the start parameter
 	// This loop is just to find and separate closed parentheses/bracket groups
@@ -502,22 +511,11 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 				// Opening parenthesis
 				// TODO: Add the line and column to the paren group nodes
 				case TokenType::LEFT_PAREN:
-
-
-
-
-
-
-
-
-
-
-
 					// Create a new paren group
 					parenGroup = new NodeParenGroup();
 					// Call the AST creator, recursively, at the new start location
 					// It will output to the parengroup
-					condenseAST(inputList, parenGroup->nodeList, std::next(ptr), NodeType::PAREN_GROUP, compileSettings, stream);
+					condenseAST(inputList, parenGroup->nodeList, scope, ptr, NodeType::PAREN_GROUP, compileSettings, stream);
 
 					// If the parens contain only one item, and that evaluates as an expression,
 					// then insert the expression and delete the group
@@ -543,50 +541,35 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// ptr now points to the next element. This moves it back to point to the
 					// newly inserted stuff
 					ptr--;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 					break;
 
 					// Opening square bracket, same logic as the parentheses
 				case TokenType::LEFT_SQUARE:
 					squareGroup = new NodeSquareGroup();
-					condenseAST(inputList, squareGroup->nodeList, std::next(ptr), NodeType::SQUARE_GROUP, compileSettings, stream);
+					condenseAST(inputList, squareGroup->nodeList, scope, ptr, NodeType::SQUARE_GROUP, compileSettings, stream);
 
 					inputList.insert(ptr, squareGroup);
 					delete (*ptr);
 					pptr = std::next(ptr);
 					delete (*pptr);
 					pptr++;
+					if (start == ptr) start = std::prev(ptr);
 					ptr = inputList.erase(ptr, pptr);
 					ptr--;
 					break;
 
 					// Opening curly bracket, same logic as the parentheses
 				case TokenType::LEFT_CURLY:
-					curlyGroup = new NodeCurlyGroup();
-					condenseAST(inputList, curlyGroup->nodeList, std::next(ptr), NodeType::CURLY_GROUP, compileSettings, stream);
+					curlyGroup = new NodeCurlyGroup(&scope);
+
+					condenseAST(inputList, curlyGroup->nodeList, curlyGroup->scope, ptr, NodeType::CURLY_GROUP, compileSettings, stream);
 
 					inputList.insert(ptr, curlyGroup);
 					delete (*ptr);
 					pptr = std::next(ptr);
 					delete (*pptr);
 					pptr++;
+					if (start == ptr) start = std::prev(ptr);
 					ptr = inputList.erase(ptr, pptr);
 					ptr--;
 					break;
@@ -596,7 +579,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// If we are looking for a closing parenthesis...
 					if (type == NodeType::PAREN_GROUP) {
 						// We now have a list with no parentheses/brackets, so it can be processed
-						outputList.splice(outputList.begin(), inputList, start, ptr);
+						outputList.splice(outputList.begin(), inputList, std::next(start), ptr);
 						goto process;
 					} else { // Otherwise there is an extra closing parenthesis and that's an error
 						throw CompilerException(CompilerException::INVALID_CLOSING_PAREN, (*ptr)->line, (*ptr)->column);
@@ -608,7 +591,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// If we are looking for a closing bracket...
 					if (type == NodeType::SQUARE_GROUP) {
 						// We now have a list with no parentheses/brackets, so it can be processed
-						outputList.splice(outputList.begin(), inputList, start, ptr);
+						outputList.splice(outputList.begin(), inputList, std::next(start), ptr);
 						goto process;
 					} else { // Otherwise there is an extra closing bracket and that's an error
 						throw CompilerException(CompilerException::INVALID_CLOSING_SQUARE, (*ptr)->line, (*ptr)->column);
@@ -620,13 +603,82 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					// If we are looking for a closing bracket...
 					if (type == NodeType::CURLY_GROUP) {
 						// We now have a list with no parentheses/brackets, so it can be processed
-						outputList.splice(outputList.begin(), inputList, start, ptr);
+						outputList.splice(outputList.begin(), inputList, std::next(start), ptr);
 						goto process;
 					} else { // Otherwise there is an extra closing bracket and that's an error
 						throw CompilerException(CompilerException::INVALID_CLOSING_CURLY, (*ptr)->line, (*ptr)->column);
 					}
 					break;
+
+				case TokenType::PERIOD:
+					// Could be defining a variable
+					if (ptr != start) {
+						pptr = std::next(ptr);
+						if (pptr != inputList.end() && (*pptr)->type == NodeType::IDENTIFIER) {
+							pptr = std::prev(ptr);
+							if ((*pptr)->type == NodeType::TOKEN) {
+								switch (static_cast<NodeToken*>(*pptr)->token->type) {
+									case TokenType::INT:
+										primType = PrimType::INT;
+										break;
+									case TokenType::FLOAT:
+										primType = PrimType::FLOAT;
+										break;
+									case TokenType::BOOL:
+										primType = PrimType::BOOL;
+										break;
+									case TokenType::CHAR_:
+										primType = PrimType::CHAR;
+										break;
+									default:
+										primType = PrimType::UNKNOWN;
+										break;
+								}
+								if (primType != PrimType::UNKNOWN) {
+									// It's a declaration
+									pptr = std::next(ptr);
+									identifier = static_cast<ExprIdentifier*>(*pptr);
+
+									// Throw an error if it's already been declared in this scope
+									if (scope.hasVar(identifier->name)) {
+										throw CompilerException(CompilerException::REDECLARED_VARIABLE, identifier->line, identifier->column);
+									}
+
+									// Create a new identifier with the updated information
+									newIdentifier = new ExprIdentifier(scope.addVar(identifier->name, EvalType(primType)), EvalType(primType));
+
+									// Delete the three tokens involved (type, ., and id)
+									delete (*(std::prev(ptr)));
+									delete (*ptr);
+									delete (*pptr);
+
+									// Clear them and insert the new identifier
+									pptr++;
+									inputList.erase(std::prev(ptr), pptr);
+									ptr = inputList.insert(pptr, newIdentifier);
+								}
+							}
+						}
+					}
+					break;
 			}
+		} else if ((*ptr)->type == NodeType::IDENTIFIER) {
+			identifier = static_cast<ExprIdentifier*>(*ptr);
+
+			// Find the identifier in the scope tree
+			idData = scope.seekVar(identifier->name);
+			if (idData.first == -1) {
+				throw CompilerException(CompilerException::UNDEFINED_VARIABLE, identifier->line, identifier->column);
+			}
+
+			// Create a new identifier with the updated information
+			newIdentifier = new ExprIdentifier(idData.first, idData.second);
+
+			// Delete the old one and insert the new one
+			delete (*ptr);
+			pptr = std::next(ptr);
+			inputList.erase(ptr, pptr);
+			ptr = inputList.insert(pptr, newIdentifier);
 		}
 		ptr++;
 	}
@@ -658,7 +710,7 @@ process:
 	Expr* right;
 	PrimType resultType;
 
-	// Pass 1: Multiplication and Division
+	// Pass: Multiplication and Division
 	// Loop through the list of nodes (left to right)
 	for (ptr = outputList.begin(); ptr != outputList.end(); ptr++) {
 		// Skip it if it's not a token
@@ -718,7 +770,7 @@ process:
 		}
 	}
 
-	// Pass 2: Addition and Subtraction
+	// Pass: Addition and Subtraction
 	// The logic for this is the same as Pass 1 so read those comments
 	for (ptr = outputList.begin(); ptr != outputList.end(); ptr++) {
 		if ((*ptr)->type != NodeType::TOKEN) continue;
@@ -787,7 +839,7 @@ compiler::RegManager::RegManager() {
 	}
 }
 
-types::reg_t	compiler::RegManager::getWord() {
+types::reg_t compiler::RegManager::getWord() {
 	for (int i = 0; i < register_::NUM_WORD_REGISTERS; i++) {
 		if (!wordsActive[i]) {
 			wordsActive[i] = true;
@@ -798,11 +850,11 @@ types::reg_t	compiler::RegManager::getWord() {
 	throw CompilerException(CompilerException::OUT_OF_REGISTERS, -1, -1);
 }
 
-void			compiler::RegManager::freeWord(reg_t reg) {
+void compiler::RegManager::freeWord(reg_t reg) {
 	wordsActive[reg - register_::W0] = false;
 }
 
-types::reg_t	compiler::RegManager::getByte() {
+types::reg_t compiler::RegManager::getByte() {
 	for (int i = 0; i < register_::NUM_BYTE_REGISTERS; i++) {
 		if (!bytesActive[i]) {
 			bytesActive[i] = true;
@@ -813,11 +865,11 @@ types::reg_t	compiler::RegManager::getByte() {
 	throw CompilerException(CompilerException::OUT_OF_REGISTERS, -1, -1);
 }
 
-void			compiler::RegManager::freeByte(reg_t reg) {
+void compiler::RegManager::freeByte(reg_t reg) {
 	bytesActive[reg - register_::B0] = false;
 }
 
-void			compiler::RegManager::free(reg_t reg) {
+void compiler::RegManager::free(reg_t reg) {
 	if (reg >= register_::B0) freeByte(reg);
 	else freeWord(reg);
 }

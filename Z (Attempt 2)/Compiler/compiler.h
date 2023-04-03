@@ -228,12 +228,10 @@ namespace compiler {
 			int primType;
 
 			EvalType() : name(-1), primType(-1) {}
-			EvalType(bool primTypeIn) : name(-1), primType(primTypeIn) {}
 			EvalType(PrimType primTypeIn) : name(-1) {
 				primType = static_cast<int>(primTypeIn);
 			}
 			EvalType(int nameIn) : name(nameIn), primType(-1) {}
-			EvalType(int nameIn, bool primTypeIn) : name(nameIn), primType(primTypeIn) {}
 			EvalType(int nameIn, PrimType primTypeIn) : name(nameIn) {
 				primType = static_cast<int>(primTypeIn);
 			}
@@ -258,7 +256,7 @@ namespace compiler {
 			CompoundType(int nameIn) : EvalType(nameIn), returnType(nullptr), memberTypes(nullptr) {}
 			~CompoundType() {
 				if (returnType != nullptr) delete returnType;
-				if (memberTypes != nullptr) delete memberTypes;
+				if (memberTypes != nullptr) delete[] memberTypes;
 			}
 		};
 
@@ -307,22 +305,38 @@ namespace compiler {
 
 		//
 
-		// Possible identifier types
-		enum class IdentifierType {
-			VAR,
-			FUNC,
-			TYPE
-			// NAMESPACE? CLASS/STRUCT?
-		};
+		struct Scope {
+			static int scopeCounter;
+			static constexpr int SCOPE_SHIFT = 16;// TODO : Maybe make this not break on less-than-32-bit systems? Nah
+			static constexpr int VAR_MASK = (1 << SCOPE_SHIFT) - 1;
 
-		// Data that is stored about an identifier (wow!)
-		struct IdentifierData {
-			int name;
-			IdentifierType type;
-		};
+			Scope* parent;
+			int id;
+			// Every variable has an integer (it's name) and a type
+			std::vector<std::pair<int, EvalType>> variables;
 
-		class Scope {
+			Scope(Scope* parentIn) : parent(parentIn), id(scopeCounter++) {}
 
+			bool hasVar(int name) {
+				for (std::pair<int, EvalType>& var : variables) {
+					if ((var.first & VAR_MASK) == name) return true;
+				}
+				return false;
+			}
+
+			int addVar(int name, EvalType type) {
+				name = (name & VAR_MASK) | (id << SCOPE_SHIFT);
+				variables.emplace_back(name, type);
+				return name;
+			}
+
+			std::pair<int, EvalType> seekVar(int name) {
+				for (std::pair<int, EvalType>& var : variables) {
+					if ((var.first & VAR_MASK) == name) return var;
+				}
+				if (parent == nullptr) return std::pair<int, EvalType>(-1, EvalType(PrimType::UNKNOWN));
+				return parent->seekVar(name);
+			}
 		};
 
 		//
@@ -399,8 +413,9 @@ namespace compiler {
 		// A set of matching curly brackets, with a list of all of the nodes contained within
 		struct NodeCurlyGroup : public Node {
 			NodeList nodeList;
+			Scope scope;
 
-			NodeCurlyGroup() : Node(NodeType::CURLY_GROUP, -1, -1) {}
+			NodeCurlyGroup(Scope* parentScope) : Node(NodeType::CURLY_GROUP, -1, -1), scope(parentScope) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << '{' << '\n';
@@ -416,6 +431,7 @@ namespace compiler {
 			const EvalType evalType;
 
 			Expr(NodeType typeIn, EvalType evalTypeIn, int lineIn, int columnIn) : Node(typeIn, true, lineIn, columnIn), evalType(evalTypeIn) {}
+			virtual ~Expr() {}
 		};
 
 		// A subclass of node that acts as a wrapper for a token
@@ -490,6 +506,9 @@ namespace compiler {
 			int name;
 
 			ExprIdentifier(int nameIn) : Expr(NodeType::IDENTIFIER, EvalType(PrimType::UNKNOWN), -1, -1), name(nameIn) {}
+			ExprIdentifier(int nameIn, EvalType typeIn) : Expr(NodeType::IDENTIFIER, typeIn, -1, -1), name(nameIn) {}
+			ExprIdentifier(int nameIn, int lineIn, int columnIn) : Expr(NodeType::IDENTIFIER, EvalType(PrimType::UNKNOWN), lineIn, columnIn), name(nameIn) {}
+			ExprIdentifier(int nameIn, EvalType typeIn, int lineIn, int columnIn) : Expr(NodeType::IDENTIFIER, typeIn, lineIn, columnIn), name(nameIn) {}
 
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << name << '\n';
@@ -558,6 +577,8 @@ namespace compiler {
 			MISSING_CLOSING_CURLY,
 			BINOP_MISSING_EXPRESSION,
 			BINOP_ILLEGAL_PATTERN,
+			REDECLARED_VARIABLE,
+			UNDEFINED_VARIABLE,
 
 			OUT_OF_REGISTERS,
 			UNKNOWN_CAST,
@@ -576,6 +597,8 @@ namespace compiler {
 			"Missing a closing curly bracket",
 			"Binop is missing an expression on one or both sides",
 			"No binop pattern exists for the given operand types",
+			"A variable has been declared twice in one scope",
+			"Use of undefined variable",
 
 			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually",
 			"Attempting to cast to or from an unknown type (don't know how this happened)",
@@ -628,6 +651,10 @@ namespace compiler {
 		bool isByte(reg_t reg);
 	};
 
+	struct ScopeManager {
+
+	};
+
 	// Gets the opcode for a cast. Used as castOpcodes[EvalType:: *source* ][EvalType:: *target* ]
 	// -1 means error (we have an unknown type for some reason)
 	// -2 means do nothing (no cast necessary)
@@ -658,7 +685,7 @@ namespace compiler {
 	int parseNumber(NoDestructToken& token);
 
 	int constructAST(AST::NodeList& outputList, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream);
-	int condenseAST(AST::NodeList& list, AST::NodeList& subList, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream);
+	int condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::Scope& scope, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream);
 
 	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream);
 	reg_t makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
