@@ -1,2 +1,5 @@
-float.x = ((3.4 + 2) * 7) - false
-x = x - 2
+float.y = ((3.4 + 2) * 7) - false
+{
+int.x
+x = y - 2
+}

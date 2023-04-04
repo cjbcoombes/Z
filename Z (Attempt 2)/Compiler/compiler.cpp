@@ -479,7 +479,10 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 	stream << '\n';
 
 	// Print the output list (more like a tree at this point)
-	outputList.print(stream, 0);
+	globalScope.print(stream, 0);
+	stream << "{\n";
+	outputList.print(stream, 1);
+	stream << "}\n";
 
 	return 0;
 }
@@ -706,6 +709,8 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 process:
 	bool flag = false;
 	ExprBinop* binop;
+	ExprAssignment* assignment;
+	ExprIdentifier* id;
 	Expr* left;
 	Expr* right;
 	PrimType resultType;
@@ -788,7 +793,7 @@ process:
 				right = static_cast<Expr*>(*pptr);
 				resultType = PrimType::UNKNOWN;
 
-				// For now, only allow arithmetic on primitive types
+				// For now, only allow arithmetic on primitive types (TODO : CHANGE)
 				if (!left->evalType.isPrim() || !right->evalType.isPrim()) {
 					throw CompilerException(CompilerException::BINOP_ILLEGAL_PATTERN, (*ptr)->line, (*ptr)->column);
 				}
@@ -821,6 +826,43 @@ process:
 				ptr = outputList.insert(ptr, binop);
 				break;
 		}
+	}
+
+	// Pass: Variable Assignment
+	for (ptr = outputList.begin(); ptr != outputList.end(); ptr++) {
+		if ((*ptr)->type != NodeType::TOKEN || static_cast<NodeToken*>(*ptr)->token->type != TokenType::EQUALS) continue;
+		
+		pptr = std::next(ptr);
+
+		// Check for an identifier on the left
+		if (ptr == outputList.begin() || (*std::prev(ptr))->type != NodeType::IDENTIFIER) {
+			throw CompilerException(CompilerException::ASSIGNMENT_TO_NONIDENTIFIER, (*ptr)->line, (*ptr)->column);
+		}
+		// and an expression on the right
+		if (pptr == outputList.end() || !((*pptr)->isExpr)) {
+			throw CompilerException(CompilerException::ASSIGNMENT_MISSING_EXPRESSION, (*ptr)->line, (*ptr)->column);
+		}
+
+		id = static_cast<ExprIdentifier*>(*std::prev(ptr));
+		right = static_cast<Expr*>(*pptr);
+
+		// For now, only allow arithmetic on primitive types (TODO : CHANGE)
+		if (!id->evalType.isPrim() || !right->evalType.isPrim()) {
+			throw CompilerException(CompilerException::ASSIGNMENT_UNMATCHED_TYPES, (*ptr)->line, (*ptr)->column);
+		}
+
+		// Cast if necessary
+		if (right->evalType.getPrim() != id->evalType.getPrim()) {
+			right = new ExprCast(right, id->evalType.getPrim());
+		}
+
+		// Create the assinment node
+		assignment = new ExprAssignment(id, right, (*ptr)->line, (*ptr)->column);
+		// Delete the token node
+		delete (*ptr);
+		// Replace the old nodes with the new one in the list
+		ptr = outputList.erase(std::prev(ptr), std::next(pptr));
+		ptr = outputList.insert(ptr, assignment);
 	}
 
 	return 0;

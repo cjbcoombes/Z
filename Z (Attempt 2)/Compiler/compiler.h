@@ -198,7 +198,8 @@ namespace compiler {
 			BOOL,
 			CHAR,
 			CAST,
-			BINOP
+			BINOP,
+			ASSIGNMENT
 		};
 
 		// Types that an expression can evaluate to (OLD)
@@ -317,6 +318,7 @@ namespace compiler {
 
 			Scope(Scope* parentIn) : parent(parentIn), id(scopeCounter++) {}
 
+			// Checks if the scope contains a variable with a given name
 			bool hasVar(int name) {
 				for (std::pair<int, EvalType>& var : variables) {
 					if ((var.first & VAR_MASK) == name) return true;
@@ -324,18 +326,28 @@ namespace compiler {
 				return false;
 			}
 
+			// Adds a variable to this scope, returning the new name with a scope identifier
 			int addVar(int name, EvalType type) {
 				name = (name & VAR_MASK) | (id << SCOPE_SHIFT);
 				variables.emplace_back(name, type);
 				return name;
 			}
 
+			// Finds an existing variable by name in this scope or a parent scope
 			std::pair<int, EvalType> seekVar(int name) {
 				for (std::pair<int, EvalType>& var : variables) {
 					if ((var.first & VAR_MASK) == name) return var;
 				}
 				if (parent == nullptr) return std::pair<int, EvalType>(-1, EvalType(PrimType::UNKNOWN));
 				return parent->seekVar(name);
+			}
+
+			void print(std::ostream& stream, int indent) {
+				stream << std::string(indent, '\t') << "New Scope (" << id << "): [";
+				for (std::pair<int, EvalType>& var : variables) {
+					stream << var.second.printName() << " " << (var.first & VAR_MASK) << ", ";
+				}
+				stream << "]\n";
 			}
 		};
 
@@ -418,9 +430,10 @@ namespace compiler {
 			NodeCurlyGroup(Scope* parentScope) : Node(NodeType::CURLY_GROUP, -1, -1), scope(parentScope) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << '{' << '\n';
+				scope.print(stream, indent);
+				stream << std::string(indent, '\t') << "{\n";
 				nodeList.print(stream, indent + 1);
-				stream << std::string(indent, '\t') << '}' << '\n';
+				stream << std::string(indent, '\t') << "}\n";
 			}
 		};
 
@@ -511,7 +524,11 @@ namespace compiler {
 			ExprIdentifier(int nameIn, EvalType typeIn, int lineIn, int columnIn) : Expr(NodeType::IDENTIFIER, typeIn, lineIn, columnIn), name(nameIn) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << name << '\n';
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << (name >> Scope::SCOPE_SHIFT) << " / " << (name & Scope::VAR_MASK) << '\n';
+			}
+
+			void printName(std::ostream& stream) {
+				stream << (name >> Scope::SCOPE_SHIFT) << " / " << (name & Scope::VAR_MASK);
 			}
 		};
 
@@ -551,6 +568,25 @@ namespace compiler {
 				right->print(stream, indent + 1);
 			}
 		};
+
+		// A node representing an assignment operation
+		struct ExprAssignment : public Expr {
+			ExprIdentifier* id;
+			Expr* right;
+
+			ExprAssignment(ExprIdentifier* idIn, Expr* rightIn, int lineIn, int columnIn) : Expr(NodeType::ASSIGNMENT, idIn->evalType, lineIn, columnIn), id(idIn), right(rightIn) {}
+			~ExprAssignment() {
+				delete id;
+				delete right;
+			}
+
+			void print(std::ostream& stream, int indent) {
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] Assignment ";
+				id->printName(stream);
+				stream << " =\n";
+				right->print(stream, indent + 1);
+			}
+		};
 	}
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -579,6 +615,9 @@ namespace compiler {
 			BINOP_ILLEGAL_PATTERN,
 			REDECLARED_VARIABLE,
 			UNDEFINED_VARIABLE,
+			ASSIGNMENT_TO_NONIDENTIFIER,
+			ASSIGNMENT_MISSING_EXPRESSION,
+			ASSIGNMENT_UNMATCHED_TYPES,
 
 			OUT_OF_REGISTERS,
 			UNKNOWN_CAST,
@@ -599,6 +638,9 @@ namespace compiler {
 			"No binop pattern exists for the given operand types",
 			"A variable has been declared twice in one scope",
 			"Use of undefined variable",
+			"Cannot assign to an expression that is not an identifier",
+			"Assignment is missing an expression on the right side",
+			"Cannot assign these types together"
 
 			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually",
 			"Attempting to cast to or from an unknown type (don't know how this happened)",
