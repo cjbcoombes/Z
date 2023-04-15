@@ -32,8 +32,9 @@ int vm::executor::exec_(std::iostream& file, ExecutorSettings& execSettings, std
 	Stack stack(execSettings.stackSize);
 	WordVal wordReg[register_::COUNT];
 	ByteVal byteReg[register_::COUNT];
-	wordReg[register_::PP].word = reinterpret_cast<word_t>(program.start);
 	wordReg[register_::BP].word = reinterpret_cast<word_t>(stack.start);
+	wordReg[register_::RP].word = reinterpret_cast<word_t>(stack.start);
+	wordReg[register_::PP].word = reinterpret_cast<word_t>(program.start);
 	byteReg[register_::FZ].bool_ = 0;
 
 	program.goto_(format::FIRST_INSTR_ADDR_LOCATION);

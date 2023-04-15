@@ -1,6 +1,7 @@
 #include "../utils.h"
 #include <vector>
 #include <list>
+#include <unordered_map>
 
 #include "ast.h"
 
@@ -222,10 +223,13 @@ namespace compiler {
 			"Char"
 		};
 
+		// Bit sizes for prim types
+		constexpr int primTypeSizes[] = { 0, 4, 4, 1, 1 };
+
 
 		// How expressions keep track of what type they'll evaluate to
 		struct EvalType {
-			int name; // Name is an identifier that's been converted to a number id rather than a string
+			int name; // TODO : (with non-prim types) Name is an identifier that's been converted to a number id rather than a string
 			int primType;
 
 			EvalType() : name(-1), primType(-1) {}
@@ -246,6 +250,14 @@ namespace compiler {
 			}
 			bool isPrim() const {
 				return primType > -1;
+			}
+			int getSize() const {
+				if (isPrim()) {
+					return primTypeSizes[static_cast<int>(getPrim())];
+				} else {
+					// TODO : Make it return custom type's actual size
+					return 0;
+				}
 			}
 		};
 
@@ -307,6 +319,9 @@ namespace compiler {
 		//
 
 		struct Scope {
+			// The eval type and the stack depth
+			typedef std::pair<EvalType, int> VarData;
+
 			static int scopeCounter;
 			static constexpr int SCOPE_SHIFT = 16;// TODO : Maybe make this not break on less-than-32-bit systems? Nah
 			static constexpr int VAR_MASK = (1 << SCOPE_SHIFT) - 1;
@@ -314,13 +329,14 @@ namespace compiler {
 			Scope* parent;
 			int id;
 			// Every variable has an integer (it's name) and a type
-			std::vector<std::pair<int, EvalType>> variables;
+			std::unordered_map<int, VarData> variables;
+			int size = 0;
 
 			Scope(Scope* parentIn) : parent(parentIn), id(scopeCounter++) {}
 
 			// Checks if the scope contains a variable with a given name
 			bool hasVar(int name) {
-				for (std::pair<int, EvalType>& var : variables) {
+				for (std::pair<const int, VarData>& var : variables) {
 					if ((var.first & VAR_MASK) == name) return true;
 				}
 				return false;
@@ -329,23 +345,40 @@ namespace compiler {
 			// Adds a variable to this scope, returning the new name with a scope identifier
 			int addVar(int name, EvalType type) {
 				name = (name & VAR_MASK) | (id << SCOPE_SHIFT);
-				variables.emplace_back(name, type);
+				variables.emplace(name, VarData(type, size));// (name, type, size)
+				size += type.getSize();
 				return name;
 			}
 
 			// Finds an existing variable by name in this scope or a parent scope
-			std::pair<int, EvalType> seekVar(int name) {
-				for (std::pair<int, EvalType>& var : variables) {
+			std::pair<int, VarData> seekVar(int name) {
+				for (std::pair<const int, VarData>& var : variables) {
 					if ((var.first & VAR_MASK) == name) return var;
 				}
-				if (parent == nullptr) return std::pair<int, EvalType>(-1, EvalType(PrimType::UNKNOWN));
+				if (parent == nullptr) return std::pair<int, VarData>(-1, VarData(EvalType(PrimType::UNKNOWN), -1));
 				return parent->seekVar(name);
 			}
 
+			// Gets the depth of a variable on the stack
+			int getStackDepth(int name) {
+				for (std::pair<const int, VarData>& var : variables) {
+					if (var.first == name) return var.second.second + getBaseStackDepth();
+				}
+				if (parent == nullptr) return -1;
+				return parent->getStackDepth(name);
+			}
+
+			// Gets the base stack depth (since parent scopes will create depth)
+			int getBaseStackDepth() {
+				if (parent == nullptr) return 0;
+				return parent->size + parent->getBaseStackDepth();
+			}
+
+			// Prints scope information
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "New Scope (" << id << "): [";
-				for (std::pair<int, EvalType>& var : variables) {
-					stream << var.second.printName() << " " << (var.first & VAR_MASK) << ", ";
+				for (std::pair<const int, VarData>& var : variables) {
+					stream << var.second.first.printName() << " " << (var.first & VAR_MASK)  << ", ";
 				}
 				stream << "]\n";
 			}
@@ -693,10 +726,6 @@ namespace compiler {
 		bool isByte(reg_t reg);
 	};
 
-	struct ScopeManager {
-
-	};
-
 	// Gets the opcode for a cast. Used as castOpcodes[EvalType:: *source* ][EvalType:: *target* ]
 	// -1 means error (we have an unknown type for some reason)
 	// -2 means do nothing (no cast necessary)
@@ -726,11 +755,12 @@ namespace compiler {
 	int tokenize(TokenList& tokenList, std::iostream& file, CompilerSettings& compileSettings, std::ostream& stream);
 	int parseNumber(NoDestructToken& token);
 
-	int constructAST(AST::NodeList& outputList, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream);
+	int constructAST(AST::NodeList& outputList, AST::Scope& globalScope, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream);
 	int condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::Scope& scope, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream);
 
-	int makeBytecode(AST::NodeList& list, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream);
-	reg_t makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
-	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
-	reg_t makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
+	int makeBytecode(AST::NodeList& list, AST::Scope& globalScope, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream);
+	void makeBlockBytecode(AST::NodeList& block, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
+	reg_t makeExprBytecode(AST::Expr* expr, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
+	reg_t makeCastBytecode(AST::ExprCast* expr, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
+	reg_t makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream);
 }

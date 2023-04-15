@@ -49,11 +49,13 @@ int compiler::compile_(std::iostream& inputFile, std::iostream& outputFile, Comp
 
 	// Construct AST
 	AST::NodeList ast;
-	constructAST(ast, tokenList, compileSettings, stream);
+	AST::Scope::scopeCounter = 1;
+	AST::Scope globalScope(nullptr);
+	constructAST(ast, globalScope, tokenList, compileSettings, stream);
 
 	stream << "\n"; //Bytecode:\n";
 
-	makeBytecode(ast, outputFile, compileSettings, stream);
+	makeBytecode(ast, globalScope, outputFile, compileSettings, stream);
 
 	return 0;
 }
@@ -405,7 +407,7 @@ int compiler::parseNumber(NoDestructToken& token) {
 	return 0;
 }
 
-int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream) {
+int compiler::constructAST(AST::NodeList& outputList, AST::Scope& globalScope, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
 	/*
@@ -470,19 +472,15 @@ int compiler::constructAST(AST::NodeList& outputList, TokenList& tokenList, Comp
 		}
 	}
 
-	Scope::scopeCounter = 1;
-	Scope globalScope = Scope(nullptr);
-
 	// Call the AST creator (this is a recursive function)
 	condenseAST(nodeList, outputList, globalScope, nodeList.begin(), NodeType::NONE, compileSettings, stream);
 
 	stream << '\n';
 
 	// Print the output list (more like a tree at this point)
+	stream << "Global ";
 	globalScope.print(stream, 0);
-	stream << "{\n";
-	outputList.print(stream, 1);
-	stream << "}\n";
+	outputList.print(stream, 0);
 
 	return 0;
 }
@@ -501,7 +499,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 	NodeCurlyGroup* curlyGroup;
 	ExprIdentifier* identifier;
 	ExprIdentifier* newIdentifier;
-	std::pair<int, EvalType> idData;
+	std::pair<int, Scope::VarData> idData;
 	PrimType primType;
 
 	// Loop through the input list, starting at the start parameter
@@ -563,6 +561,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 
 					// Opening curly bracket, same logic as the parentheses
 				case TokenType::LEFT_CURLY:
+					// TODO : When functions are defined the global scope shoud NOT be their parent
 					curlyGroup = new NodeCurlyGroup(&scope);
 
 					condenseAST(inputList, curlyGroup->nodeList, curlyGroup->scope, ptr, NodeType::CURLY_GROUP, compileSettings, stream);
@@ -675,7 +674,7 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 			}
 
 			// Create a new identifier with the updated information
-			newIdentifier = new ExprIdentifier(idData.first, idData.second);
+			newIdentifier = new ExprIdentifier(idData.first, idData.second.first);
 
 			// Delete the old one and insert the new one
 			delete (*ptr);
@@ -831,7 +830,7 @@ process:
 	// Pass: Variable Assignment
 	for (ptr = outputList.begin(); ptr != outputList.end(); ptr++) {
 		if ((*ptr)->type != NodeType::TOKEN || static_cast<NodeToken*>(*ptr)->token->type != TokenType::EQUALS) continue;
-		
+
 		pptr = std::next(ptr);
 
 		// Check for an identifier on the left
@@ -924,7 +923,11 @@ bool compiler::RegManager::isByte(reg_t reg) {
 	return reg >= register_::B0;
 }
 
-int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream) {
+bool compiler::AST::isWord(PrimType type) {
+	return type == PrimType::INT || type == PrimType::FLOAT;
+}
+
+int compiler::makeBytecode(AST::NodeList& list, AST::Scope& globalScope, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 	/*
 	So how the hell is this supposed to work?
@@ -941,42 +944,63 @@ int compiler::makeBytecode(AST::NodeList& list, std::iostream& outputFile, Compi
 	*/
 
 	RegManager reg;
-
 	int byteCounter = 0;
-
-
-
-
-	// TEMP!
-	reg_t rid1 = 0;
-	opcode_t opcode = 0;
 
 	int_t startPos = 4;
 	CMP_WRITE(startPos, int_t);
 
-	if ((*list.begin())->isExpr) {
-		rid1 = makeExprBytecode(static_cast<Expr*>(*list.begin()), reg, outputFile, byteCounter, compileSettings, stream);
-		opcode = opcode::R_PRNT_F;
-		CMP_WRITE(opcode, opcode_t);
-		CMP_WRITE(rid1, reg_t);
-	}
-
-	// (END) TEMP!
-
+	makeBlockBytecode(list, reg, globalScope, globalScope, outputFile, byteCounter, compileSettings, stream);
 
 	return 0;
 }
 
-types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
+void compiler::makeBlockBytecode(AST::NodeList& block, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
+	using namespace AST;
+
+	reg_t rid1 = 0;
+	opcode_t opcode = 0;
+
+	NodeCurlyGroup* nodeCurlyGroup;
+
+	for (AST::Node* elem : block) {
+		if (elem->isExpr) {
+			rid1 = makeExprBytecode(static_cast<Expr*>(elem), reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
+			opcode = opcode::R_PRNT_F;
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(rid1, reg_t);
+			opcode = opcode::PRNT_LN;
+			CMP_WRITE(opcode, opcode_t);
+			reg.free(rid1);
+		}
+
+		switch (elem->type) {
+			case NodeType::CURLY_GROUP:
+				// TODO : something different for function definitions (new stack frame)
+				nodeCurlyGroup = static_cast<NodeCurlyGroup*>(elem);
+				makeBlockBytecode(nodeCurlyGroup->nodeList, reg, globalScope, nodeCurlyGroup->scope, outputFile, byteCounter, compileSettings, stream);
+				break;
+		}
+
+		// TODO: all the other types of things
+	}
+
+}
+
+types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
 	reg_t ridOut = 0;
+
+	reg_t BP = static_cast<reg_t>(register_::BP);
 	opcode_t opcode = 0;
+	word_t word = 0;
 
 	int utilityInt;
 
 	ExprCast* exprCast;
 	ExprBinop* exprBinop;
+	ExprIdentifier* exprIdentifier;
+	ExprAssignment* exprAssignment;
 
 	// Makes the bytecode based on the expr type
 	switch (expr->type) {
@@ -1009,28 +1033,78 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, std::i
 			CMP_WRITE(ridOut, reg_t);
 			CMP_WRITE(static_cast<ExprChar*>(expr)->char_, char_t);
 			break;
+		case NodeType::IDENTIFIER:
+			exprIdentifier = static_cast<ExprIdentifier*>(expr);
+			exprIdentifier->printName(stream);
+			stream << " @ " << scope.getStackDepth(exprIdentifier->name) << '\n';
+
+			if (!exprIdentifier->evalType.isPrim()) {
+				// TODO : Handle non-primitive types
+				throw CompilerException(CompilerException::UNKNOWN, exprIdentifier->line, exprIdentifier->column);
+			}
+
+			// TODO : Also handle global variables (but that only matters once functions are added)
+			if (isWord(exprIdentifier->evalType.getPrim())) {
+				ridOut = reg.getWord();
+				opcode = opcode::LOAD_W;
+				CMP_WRITE(opcode, opcode_t);
+				CMP_WRITE(ridOut, reg_t);
+				CMP_WRITE(BP, reg_t);
+				word = scope.getStackDepth(exprIdentifier->name);
+				CMP_WRITE(word, word_t);
+			} else {
+				ridOut = reg.getByte();
+				opcode = opcode::LOAD_B;
+				CMP_WRITE(opcode, opcode_t);
+				CMP_WRITE(ridOut, reg_t);
+				CMP_WRITE(BP, reg_t);
+				word = scope.getStackDepth(exprIdentifier->name);
+				CMP_WRITE(word, word_t);
+			}
+			break;
 
 			// Other types are more complicated and their logic is in separate functions
 		case NodeType::CAST:
 			exprCast = static_cast<ExprCast*>(expr);
-			ridOut = makeCastBytecode(exprCast, reg, outputFile, byteCounter, compileSettings, stream);
+			ridOut = makeCastBytecode(exprCast, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
 			break;
 		case NodeType::BINOP:
 			exprBinop = static_cast<ExprBinop*>(expr);
-			ridOut = makeBinopBytecode(exprBinop, reg, outputFile, byteCounter, compileSettings, stream);
+			ridOut = makeBinopBytecode(exprBinop, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
+			break;
+		case NodeType::ASSIGNMENT:
+			ridOut = reg.getWord();
+			exprAssignment = static_cast<ExprAssignment*>(expr);
+			exprIdentifier = exprAssignment->id;
+			exprIdentifier->printName(stream);
+			stream << " @ " << scope.getStackDepth(exprIdentifier->name) << '\n';
+
+			ridOut = makeExprBytecode(exprAssignment->right, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
+
+			// TODO : Also handle global variables (but that only matters once functions are added)
+			if (reg.isWord(ridOut)) {
+				opcode = opcode::STORE_W;
+			} else {
+				opcode = opcode::STORE_B;
+			}
+			CMP_WRITE(opcode, opcode_t);
+			CMP_WRITE(BP, reg_t);
+			word = scope.getStackDepth(exprIdentifier->name);
+			CMP_WRITE(word, word_t);
+			CMP_WRITE(ridOut, reg_t);
 			break;
 	}
 
+	// This is a patch, maybe there's a better way, but honestly this shouldn't happen
+	// It means none of the switch cases triggered
+	if (ridOut == 0) ridOut = reg.getWord();
+	
 	return ridOut;
 }
 
-bool compiler::AST::isWord(PrimType type) {
-	return type == PrimType::INT || type == PrimType::FLOAT;
-}
-
-types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
+types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
 	reg_t ridOut = 0;
-	reg_t rid = makeExprBytecode(expr->source, reg, outputFile, byteCounter, compileSettings, stream);
+	reg_t rid = makeExprBytecode(expr->source, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
 
 	// Something like this shouldn't have made it through the AST construction
 	// but if it did this would catch it
@@ -1116,17 +1190,17 @@ types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, st
 	return ridOut;
 }
 
-types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
+types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, AST::Scope& globalScope, AST::Scope& scope, std::iostream& outputFile, int& byteCounter, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
-	reg_t ridLeft = makeExprBytecode(expr->left, reg, outputFile, byteCounter, compileSettings, stream);
-	reg_t ridRight = makeExprBytecode(expr->right, reg, outputFile, byteCounter, compileSettings, stream);
+	reg_t ridLeft = makeExprBytecode(expr->left, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
+	reg_t ridRight = makeExprBytecode(expr->right, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
 	opcode_t opcode = 0;
 
 	// Something like this shouldn't have made it through the AST construction
 	// but if it did this would catch it
 	if (!expr->evalType.isPrim()) {
-		throw CompilerException(CompilerException::UNKNOWN_CAST, -1, -1);
+		throw CompilerException(CompilerException::UNKNOWN, -1, -1);
 	}
 
 	// Look up the correct opcode
