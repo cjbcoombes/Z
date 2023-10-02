@@ -407,18 +407,20 @@ int compiler::parseNumber(NoDestructToken& token) {
 	return 0;
 }
 
+void compiler::AST::initTypeSignatureSet(TypeSignatureSet& typeSignatureSet) {
+	typeSignatureSet.clear();
+	// Initialize the first few type signatures to be the primitive types
+	for (int i = 0; i < numPrimTypes; i++) {
+		typeSignatureSet.emplace_back(1);
+		typeSignatureSet[i].bodyTypes[0] = i;
+	}
+}
+
 int compiler::constructAST(AST::NodeList& outputList, AST::Scope& globalScope, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
-	/*
-
-	ok ok ok thinking about identifiers and resolving scope
-	So when we read each identifier we'll give it a number because that's easier than using strings
-
-	But then how does the AST determine scope? Well that's a language design choice... so how should the language determine scope?
-	Oh no. I actually have to design the language now.
-
-	*/
+	TypeSignatureSet typeSignatureSet;
+	initTypeSignatureSet(typeSignatureSet);
 
 	std::unordered_map<std::string, int> ids;
 	int numIds = 0;
@@ -485,6 +487,59 @@ int compiler::constructAST(AST::NodeList& outputList, AST::Scope& globalScope, T
 	return 0;
 }
 
+int compiler::condenseType(AST::NodeList& inputList, int& signature, AST::NodeList::iterator start, CompilerSettings& compileSettings, std::ostream& stream) {
+	using namespace AST;
+
+	NodeList::iterator ptr = std::next(start);
+
+	// 0 = looking for a new type
+	// 1 = a type has been declared, now checking for a period (go to 2) or a comma (go to 0)
+	// 2 = a period, now looking for an identifier (go to 3)
+	// 3 = an identifier, now looking for a comma (go to 0)
+	int stage = 0;
+
+	TokenType type;
+
+	while (ptr != inputList.end()) {
+		if (stage == 2) {
+			if ((*ptr)->type != NodeType::IDENTIFIER) {
+				throw CompilerException(CompilerException::MISSING_TYPE_IDENTIFIER, (*ptr)->line, (*ptr)->column);
+			}
+			
+			// TODO : apply identifier
+
+			stage = 3;
+			break;
+		}
+
+		if ((*ptr)->type != NodeType::TOKEN) {
+			throw CompilerException(CompilerException::INVALID_TYPE_TOKEN, (*ptr)->line, (*ptr)->column);
+		}
+		type = static_cast<NodeToken*>(*ptr)->token->type;
+
+		switch (stage) {
+			case 0:
+
+				// TODO : Add a vector and add types to it live and then convert that to a type signature at the end
+
+				break;
+			case 1:
+				if (type == TokenType::PERIOD) stage = 2;
+				else if (type == TokenType::COMMA) stage = 0;
+				else {
+					throw CompilerException(CompilerException::INVALID_TYPE_TOKEN, (*ptr)->line, (*ptr)->column);
+				}
+				break;
+			case 3:
+				if (type == TokenType::COMMA) stage = 0;
+				else {
+					throw CompilerException(CompilerException::INVALID_TYPE_TOKEN, (*ptr)->line, (*ptr)->column);
+				}
+				break;
+		}
+	}
+}
+
 int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::Scope& scope, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 	// parameter type will be NONE, PAREN_GROUP, SQUARE_GROUP, CURLY_GROUP
@@ -501,6 +556,8 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 	ExprIdentifier* newIdentifier;
 	std::pair<int, Scope::VarData> idData;
 	PrimType primType;
+	int signature;
+	bool isType;
 
 	// Loop through the input list, starting at the start parameter
 	// This loop is just to find and separate closed parentheses/bracket groups
@@ -576,6 +633,39 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					ptr--;
 					break;
 
+					// Opening angle bracket, same logic as the parentheses but it runs a different function
+				/*case TokenType::LEFT_ANGLE:
+					isType = false;
+					if (ptr != inputList.end()) {
+						pptr = std::next(ptr);
+						if ((*pptr)->type == NodeType::TOKEN) {
+							switch (static_cast<NodeToken*>(*pptr)->token->type) {
+								case TokenType::INT:
+								case TokenType::FLOAT:
+								case TokenType::BOOL:
+								case TokenType::CHAR_:
+								case TokenType::LEFT_ANGLE:
+									isType = true;
+									break;
+							}
+						}
+					}*/
+
+					if (isType) {
+						signature = -1;
+						condenseType(inputList, signature, ptr, compileSettings, stream);
+
+						inputList.insert(ptr, squareGroup);
+						delete (*ptr);
+						pptr = std::next(ptr);
+						delete (*pptr);
+						pptr++;
+						if (start == ptr) start = std::prev(ptr);
+						ptr = inputList.erase(ptr, pptr);
+						ptr--;
+					}
+					break;
+
 					// Closing parenthesis
 				case TokenType::RIGHT_PAREN:
 					// If we are looking for a closing parenthesis...
@@ -588,29 +678,35 @@ int compiler::condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, A
 					}
 					break;
 
-					// Closing square bracket
+					// Closing square bracket, same logic as parentheses
 				case TokenType::RIGHT_SQUARE:
-					// If we are looking for a closing bracket...
 					if (type == NodeType::SQUARE_GROUP) {
-						// We now have a list with no parentheses/brackets, so it can be processed
 						outputList.splice(outputList.begin(), inputList, std::next(start), ptr);
 						goto process;
-					} else { // Otherwise there is an extra closing bracket and that's an error
+					} else {
 						throw CompilerException(CompilerException::INVALID_CLOSING_SQUARE, (*ptr)->line, (*ptr)->column);
 					}
 					break;
 
-					// Closing curly bracket
+					// Closing curly bracket, same logic as parentheses
 				case TokenType::RIGHT_CURLY:
-					// If we are looking for a closing bracket...
 					if (type == NodeType::CURLY_GROUP) {
-						// We now have a list with no parentheses/brackets, so it can be processed
 						outputList.splice(outputList.begin(), inputList, std::next(start), ptr);
 						goto process;
-					} else { // Otherwise there is an extra closing bracket and that's an error
+					} else {
 						throw CompilerException(CompilerException::INVALID_CLOSING_CURLY, (*ptr)->line, (*ptr)->column);
 					}
 					break;
+
+					// Closing angle bracket, same logic as parentheses but doesn't move on to processing
+				/*case TokenType::RIGHT_ANGLE:
+					if (type == NodeType::CURLY_GROUP) {
+						outputList.splice(outputList.begin(), inputList, std::next(start), ptr);
+						goto process;
+					} else {
+						throw CompilerException(CompilerException::INVALID_CLOSING_CURLY, (*ptr)->line, (*ptr)->column);
+					}
+					break;*/
 
 				case TokenType::PERIOD:
 					// Could be defining a variable
@@ -961,15 +1057,25 @@ void compiler::makeBlockBytecode(AST::NodeList& block, RegManager& reg, AST::Sco
 	opcode_t opcode = 0;
 
 	NodeCurlyGroup* nodeCurlyGroup;
+	Expr* expr;
 
 	for (AST::Node* elem : block) {
 		if (elem->isExpr) {
-			rid1 = makeExprBytecode(static_cast<Expr*>(elem), reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
-			opcode = opcode::R_PRNT_F;
-			CMP_WRITE(opcode, opcode_t);
-			CMP_WRITE(rid1, reg_t);
-			opcode = opcode::PRNT_LN;
-			CMP_WRITE(opcode, opcode_t);
+			expr = static_cast<Expr*>(elem);
+			rid1 = makeExprBytecode(expr, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
+			if (expr->evalType.isPrim()) {
+				if (expr->evalType.getPrim() == PrimType::FLOAT) {
+					opcode = opcode::R_PRNT_F;
+					CMP_WRITE(opcode, opcode_t);
+					CMP_WRITE(rid1, reg_t);
+				} else if (expr->evalType.getPrim() == PrimType::INT) {
+					opcode = opcode::R_PRNT_I;
+					CMP_WRITE(opcode, opcode_t);
+					CMP_WRITE(rid1, reg_t);
+				}
+				opcode = opcode::PRNT_LN;
+				CMP_WRITE(opcode, opcode_t);
+			}
 			reg.free(rid1);
 		}
 
@@ -994,8 +1100,6 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, AST::S
 	reg_t BP = static_cast<reg_t>(register_::BP);
 	opcode_t opcode = 0;
 	word_t word = 0;
-
-	int utilityInt;
 
 	ExprCast* exprCast;
 	ExprBinop* exprBinop;
@@ -1035,8 +1139,6 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, AST::S
 			break;
 		case NodeType::IDENTIFIER:
 			exprIdentifier = static_cast<ExprIdentifier*>(expr);
-			exprIdentifier->printName(stream);
-			stream << " @ " << scope.getStackDepth(exprIdentifier->name) << '\n';
 
 			if (!exprIdentifier->evalType.isPrim()) {
 				// TODO : Handle non-primitive types
@@ -1075,21 +1177,18 @@ types::reg_t compiler::makeExprBytecode(AST::Expr* expr, RegManager& reg, AST::S
 		case NodeType::ASSIGNMENT:
 			ridOut = reg.getWord();
 			exprAssignment = static_cast<ExprAssignment*>(expr);
-			exprIdentifier = exprAssignment->id;
-			exprIdentifier->printName(stream);
-			stream << " @ " << scope.getStackDepth(exprIdentifier->name) << '\n';
 
 			ridOut = makeExprBytecode(exprAssignment->right, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
 
 			// TODO : Also handle global variables (but that only matters once functions are added)
 			if (reg.isWord(ridOut)) {
-				opcode = opcode::STORE_W;
+				opcode = opcode::STORE_W; 
 			} else {
 				opcode = opcode::STORE_B;
 			}
 			CMP_WRITE(opcode, opcode_t);
 			CMP_WRITE(BP, reg_t);
-			word = scope.getStackDepth(exprIdentifier->name);
+			word = scope.getStackDepth(exprAssignment->id->name);
 			CMP_WRITE(word, word_t);
 			CMP_WRITE(ridOut, reg_t);
 			break;
@@ -1113,7 +1212,7 @@ types::reg_t compiler::makeCastBytecode(AST::ExprCast* expr, RegManager& reg, AS
 	}
 
 	// opcodeInt could be a regular opcode or it could be negative for a special case
-	int opcodeInt = castOpcodes[expr->source->evalType.primType][expr->evalType.primType];
+	int opcodeInt = castOpcodes[expr->source->evalType.signature][expr->evalType.signature];
 	opcode_t opcode = 0;
 
 	// TODO : this
@@ -1204,7 +1303,7 @@ types::reg_t compiler::makeBinopBytecode(AST::ExprBinop* expr, RegManager& reg, 
 	}
 
 	// Look up the correct opcode
-	int opcodeInt = binopOpcodes[static_cast<int>(expr->opType)][expr->evalType.primType];
+	int opcodeInt = binopOpcodes[static_cast<int>(expr->opType)][expr->evalType.signature];
 
 	// Somehow we're adding types that shouldn't be added
 	if (opcodeInt == -1) throw CompilerException(CompilerException::UNKNOWN_BINOP, -1, -1);

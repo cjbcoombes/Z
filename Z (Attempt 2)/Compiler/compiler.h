@@ -214,6 +214,9 @@ namespace compiler {
 
 		bool isWord(PrimType type);
 
+		// Number of prim types
+		constexpr const int numPrimTypes = static_cast<int>(PrimType::CHAR) + 1;
+
 		// Names of expression types (for printing to console)
 		constexpr const char* const primTypeNames[] = {
 			"Unknown",
@@ -226,50 +229,56 @@ namespace compiler {
 		// Bit sizes for prim types
 		constexpr int primTypeSizes[] = { 0, 4, 4, 1, 1 };
 
+		// Represents a type, compound type, function, etc.
+		struct TypeSignature {
+			// The "int"s here refer to indices of the typeSignatures vector
+			int returnType;
+			int* bodyTypes;
 
-		// How expressions keep track of what type they'll evaluate to
-		struct EvalType {
-			int name; // TODO : (with non-prim types) Name is an identifier that's been converted to a number id rather than a string
-			int primType;
+			TypeSignature(int size) : bodyTypes(new int[size]), returnType(-1) {}
+			TypeSignature(int size, int returnTypeIn) : bodyTypes(new int[size]), returnType(returnTypeIn) {}
+			~TypeSignature() {
+				// Vectors move shit around so the destructor for this is actually in the vector's destructor
+				// delete[] bodyTypes;
+			}
+		};
 
-			EvalType() : name(-1), primType(-1) {}
-			EvalType(PrimType primTypeIn) : name(-1) {
-				primType = static_cast<int>(primTypeIn);
-			}
-			EvalType(int nameIn) : name(nameIn), primType(-1) {}
-			EvalType(int nameIn, PrimType primTypeIn) : name(nameIn) {
-				primType = static_cast<int>(primTypeIn);
-			}
-			virtual ~EvalType() {}
-
-			const char* printName() const {
-				return primType > -1 ? primTypeNames[primType] : "Comp Type";
-			}
-			PrimType getPrim() const {
-				return primType > -1 ? static_cast<PrimType>(primType) : PrimType::UNKNOWN;
-			}
-			bool isPrim() const {
-				return primType > -1;
-			}
-			int getSize() const {
-				if (isPrim()) {
-					return primTypeSizes[static_cast<int>(getPrim())];
-				} else {
-					// TODO : Make it return custom type's actual size
-					return 0;
+		class TypeSignatureSet : public std::vector<TypeSignature> {
+		public:
+			// Deletes its tokens' strings, if they exist, bnfore the tokens themselves are destroyed
+			~TypeSignatureSet() {
+				for (auto ptr = begin(); ptr < end(); ptr++) {
+					delete[] ptr->bodyTypes;
 				}
 			}
 		};
 
-		struct CompoundType : EvalType {
-			EvalType* returnType;
-			EvalType(*memberTypes)[];
+		void initTypeSignatureSet(TypeSignatureSet& typeSignatureSet);
 
-			CompoundType() : EvalType(), returnType(nullptr), memberTypes(nullptr) {}
-			CompoundType(int nameIn) : EvalType(nameIn), returnType(nullptr), memberTypes(nullptr) {}
-			~CompoundType() {
-				if (returnType != nullptr) delete returnType;
-				if (memberTypes != nullptr) delete[] memberTypes;
+		// How expressions keep track of what type they'll evaluate to
+		struct EvalType {
+			int signature; // TODO : (with non-prim types) Name is an identifier that's been converted to a number id rather than a string
+
+			EvalType() : signature(-1) {}
+			EvalType(PrimType primTypeIn) : signature(static_cast<int>(primTypeIn)) {}
+			virtual ~EvalType() {}
+
+			const char* printName() const {
+				return isPrim() ? primTypeNames[signature] : "Compound Type";
+			}
+			PrimType getPrim() const {
+				return isPrim() ? static_cast<PrimType>(signature) : PrimType::UNKNOWN;
+			}
+			bool isPrim() const {
+				return signature > -1 && signature < numPrimTypes;
+			}
+			int getSize() const {
+				if (isPrim()) {
+					return primTypeSizes[signature];
+				} else {
+					// TODO : Make it return custom type's actual size
+					return 0;
+				}
 			}
 		};
 
@@ -378,7 +387,7 @@ namespace compiler {
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "New Scope (" << id << "): [";
 				for (std::pair<const int, VarData>& var : variables) {
-					stream << var.second.first.printName() << " " << (var.first & VAR_MASK)  << ", ";
+					stream << var.second.first.printName() << " ID:" << (var.first & VAR_MASK) << ", ";
 				}
 				stream << "]\n";
 			}
@@ -561,7 +570,7 @@ namespace compiler {
 			}
 
 			void printName(std::ostream& stream) {
-				stream << (name >> Scope::SCOPE_SHIFT) << " / " << (name & Scope::VAR_MASK);
+				stream << "Scope:" << (name >> Scope::SCOPE_SHIFT) << " / ID:" << (name & Scope::VAR_MASK);
 			}
 		};
 
@@ -651,6 +660,8 @@ namespace compiler {
 			ASSIGNMENT_TO_NONIDENTIFIER,
 			ASSIGNMENT_MISSING_EXPRESSION,
 			ASSIGNMENT_UNMATCHED_TYPES,
+			INVALID_TYPE_TOKEN,
+			MISSING_TYPE_IDENTIFIER,
 
 			OUT_OF_REGISTERS,
 			UNKNOWN_CAST,
@@ -673,7 +684,9 @@ namespace compiler {
 			"Use of undefined variable",
 			"Cannot assign to an expression that is not an identifier",
 			"Assignment is missing an expression on the right side",
-			"Cannot assign these types together"
+			"Cannot assign these types together",
+			"Invalid token in parsing type signature",
+			"The type declaration is missing an identifier",
 
 			"It appears that we require more registers than are avaliable... I guess I'll have to fix that eventually",
 			"Attempting to cast to or from an unknown type (don't know how this happened)",
@@ -756,6 +769,7 @@ namespace compiler {
 	int parseNumber(NoDestructToken& token);
 
 	int constructAST(AST::NodeList& outputList, AST::Scope& globalScope, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream);
+	int condenseType(AST::NodeList& inputList, int& signature, AST::NodeList::iterator start, CompilerSettings& compileSettings, std::ostream& stream);
 	int condenseAST(AST::NodeList& inputList, AST::NodeList& outputList, AST::Scope& scope, AST::NodeList::iterator start, AST::NodeType type, CompilerSettings& compileSettings, std::ostream& stream);
 
 	int makeBytecode(AST::NodeList& list, AST::Scope& globalScope, std::iostream& outputFile, CompilerSettings& compileSettings, std::ostream& stream);
