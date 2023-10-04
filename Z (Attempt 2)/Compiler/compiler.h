@@ -387,7 +387,7 @@ namespace compiler {
 			void print(std::ostream& stream, int indent) {
 				stream << std::string(indent, '\t') << "New Scope (" << id << "): [";
 				for (std::pair<const int, VarData>& var : variables) {
-					stream << var.second.first.printName() << " ID:" << (var.first & VAR_MASK) << ", ";
+					stream << var.second.first.printName() << " ID: " << (var.first & VAR_MASK) << ", ";
 				}
 				stream << "]\n";
 			}
@@ -566,11 +566,11 @@ namespace compiler {
 			ExprIdentifier(int nameIn, EvalType typeIn, int lineIn, int columnIn) : Expr(NodeType::IDENTIFIER, typeIn, lineIn, columnIn), name(nameIn) {}
 
 			void print(std::ostream& stream, int indent) {
-				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] ID: " << (name >> Scope::SCOPE_SHIFT) << " / " << (name & Scope::VAR_MASK) << '\n';
+				stream << std::string(indent, '\t') << "[" << evalType.printName() << "] Scope/ID: " << (name >> Scope::SCOPE_SHIFT) << "/" << (name & Scope::VAR_MASK) << '\n';
 			}
 
 			void printName(std::ostream& stream) {
-				stream << "Scope:" << (name >> Scope::SCOPE_SHIFT) << " / ID:" << (name & Scope::VAR_MASK);
+				stream << "Scope/ID: " << (name >> Scope::SCOPE_SHIFT) << "/" << (name & Scope::VAR_MASK);
 			}
 		};
 
@@ -744,11 +744,11 @@ namespace compiler {
 	// -2 means do nothing (no cast necessary)
 	// -3, -4, -5 are special-case conversions to bool 
 	constexpr int castOpcodes[5][5] = {
-		{-1,	-1,				-1,				-1,				-1},
-		{-1,	-2,				opcode::I_TO_F,	opcode::I_TO_C,	-3},
-		{-1,	opcode::F_TO_I,	-2,				opcode::F_TO_C,	-4},
-		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-5},
-		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2,				-2}
+		{-1,	-1,				-1,				-1, -1,			  },
+		{-1,	-2,				opcode::I_TO_F,	-3, opcode::I_TO_C},
+		{-1,	opcode::F_TO_I,	-2,				-4, opcode::F_TO_C},
+		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-5, -2,			  },
+		{-1,	opcode::C_TO_I,	opcode::C_TO_F,	-2, -2,			  }
 	};
 
 	// Gets the opcode for a binop. Used as binopOpcodes[OpType:: *type* ][EvalType:: *operand type*]

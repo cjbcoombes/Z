@@ -15,7 +15,8 @@ int main(int argc, const char* args[]) {
 		"-profile",
 		"-noprofile",
 		"-stacksize",
-		"-compile"
+		"-compile",
+		"-disassemble"
 	};
 
 	vm::assembler::AssemblerSettings assemblerSettings;
@@ -65,11 +66,13 @@ int main(int argc, const char* args[]) {
 			case 3: // -debug
 				assemblerSettings.flags.setFlags(FLAG_DEBUG);
 				executorSettings.flags.setFlags(FLAG_DEBUG);
+				compilerSettings.flags.setFlags(FLAG_DEBUG);
 				break;
 
 			case 4: // -nodebug
 				assemblerSettings.flags.unsetFlags(FLAG_DEBUG);
 				executorSettings.flags.unsetFlags(FLAG_DEBUG);
+				compilerSettings.flags.unsetFlags(FLAG_DEBUG);
 				break;
 
 			case 5: // -profile
@@ -99,6 +102,16 @@ int main(int argc, const char* args[]) {
 				} else {
 					if (compiler::compile(args[i + 1], args[i + 2], compilerSettings)) return 1;
 					i += 2;
+				}
+				break;
+
+			case 9: // -disassemble
+				if (argc - i < 2) {
+					cout << IO_ERR "Not enough arguments for disassembly" IO_NORM IO_END;
+					return 1;
+				} else {
+					if (vm::assembler::disassemble(args[i + 1])) return 1;
+					i++;
 				}
 				break;
 		}

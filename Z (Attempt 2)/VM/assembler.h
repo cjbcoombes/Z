@@ -62,6 +62,52 @@ namespace vm {
 
 		int assemble(const char* const& assemblyPath, const char* const& outputPath, AssemblerSettings& assemblerSettings);
 		int assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream);
+		
+		//
+		
+		// Copied from executor.h
+		class Bytecode {
+			static constexpr int FILLER_SIZE = 24;
+
+		public:
+			char* start;
+			char* ip;
+			char* end;
+
+			Bytecode(std::iostream& program) {
+				// https://stackoverflow.com/questions/22984956/tellg-function-give-wrong-size-of-file
+				program.seekg(0, std::ios::beg);
+				program.ignore(std::numeric_limits<std::streamsize>::max());
+				std::streamsize length = program.gcount();
+
+				start = new char[length + FILLER_SIZE];
+				ip = start;
+				end = start + length;
+
+				program.clear();
+				program.seekg(0, std::ios::beg);
+				program.read(start, length);
+
+				std::fill(start + length, start + length + FILLER_SIZE, charFiller);
+			}
+
+			~Bytecode() {
+				delete[] start;
+			}
+
+			void goto_(types::word_t loc) {
+				ip = start + loc;
+			}
+
+			template<typename T>
+			void read(T* val) {
+				(*val) = *reinterpret_cast<T*>(ip);
+				ip += sizeof(T);
+			}
+		};
+		
+		int disassemble(const char* const& bytecodePath);
+		int disassemble_(std::iostream& bytecodeFile, std::ostream& stream);
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// Parsing

@@ -32,7 +32,7 @@
 
 #define IO_ERR IO_RED "[ERROR] "
 #define IO_WARN IO_YELLOW "[WARNING] "
-#define IO_OK IO_GREEN
+#define IO_MAIN IO_GREEN "[MAIN] "
 #define IO_DEBUG IO_CYAN "[DEBUG] "
 
 #define IO_HEX std::hex

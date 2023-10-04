@@ -7,7 +7,7 @@ int compiler::AST::Scope::scopeCounter = 0;
 
 int compiler::compile(const char* const& inputPath, const char* const& outputPath, CompilerSettings& compileSettings) {
 	using std::cout;
-	cout << "Attempting to compile file \"" << inputPath << "\" into output file \"" << outputPath << "\"\n";
+	cout << IO_MAIN "Attempting to compile file \"" << inputPath << "\" into output file \"" << outputPath << "\"\n" IO_NORM;
 
 	// Open streams for the input and output files
 	std::fstream inputFile, outputFile;
@@ -25,7 +25,9 @@ int compiler::compile(const char* const& inputPath, const char* const& outputPat
 	}
 
 	try {
-		return compile_(inputFile, outputFile, compileSettings, std::cout);
+		int out = compile_(inputFile, outputFile, compileSettings, std::cout);
+		cout << IO_MAIN "Compilation finished with code: " << out << IO_NORM IO_END;
+		return out;
 	} catch (CompilerException& e) {
 		cout << IO_ERR "Error during compilation at LINE " << e.line << ", COLUMN " << e.column << " : " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {
@@ -39,13 +41,9 @@ int compiler::compile_(std::iostream& inputFile, std::iostream& outputFile, Comp
 	// Flags/settings
 	const bool isDebug = compileSettings.flags.hasFlags(FLAG_DEBUG);
 
-	stream << "\nTokenization:\n";
-
 	// Tokenize
 	TokenList tokenList;
 	tokenize(tokenList, inputFile, compileSettings, stream);
-
-	stream << "\nAST:\n";
 
 	// Construct AST
 	AST::NodeList ast;
@@ -68,6 +66,8 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, CompilerSettin
 
 	// Flags/settings
 	const bool isDebug = compileSettings.flags.hasFlags(FLAG_DEBUG);
+
+	if (isDebug) stream << '\n' << IO_DEBUG << "Tokenization:\n";
 
 	tokenList.clear();
 
@@ -284,15 +284,18 @@ int compiler::tokenize(TokenList& tokenList, std::iostream& file, CompilerSettin
 	}
 
 	///* Print Tokens
-	for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
-		stream << std::setw(3) << ptr->line << "  " << std::setw(3) << ptr->column;
-		if (ptr->type == TokenType::NUM_UNIDENTIFIED) stream << "         #: " << *(ptr->str);
-		else if (ptr->type == TokenType::NUM_INT) stream << "       Int: " << (ptr->int_);
-		else if (ptr->type == TokenType::NUM_FLOAT) stream << "     Float: " << (ptr->float_);
-		else if (ptr->type == TokenType::STRING) stream << "    String: " << *(ptr->str);
-		else if (ptr->hasStr) stream << "        ID: " << *(ptr->str);
-		else stream << "     Token: " << static_cast<int>(ptr->type);
-		stream << '\n';
+	if (isDebug) {
+		for (auto ptr = tokenList.begin(); ptr < tokenList.end(); ptr++) {
+			stream << std::setw(3) << ptr->line << "  " << std::setw(3) << ptr->column;
+			if (ptr->type == TokenType::NUM_UNIDENTIFIED) stream << "         #: " << *(ptr->str);
+			else if (ptr->type == TokenType::NUM_INT) stream << "       Int: " << (ptr->int_);
+			else if (ptr->type == TokenType::NUM_FLOAT) stream << "     Float: " << (ptr->float_);
+			else if (ptr->type == TokenType::STRING) stream << "    String: " << *(ptr->str);
+			else if (ptr->hasStr) stream << "        ID: " << *(ptr->str);
+			else stream << "     Token: " << static_cast<int>(ptr->type);
+			stream << '\n';
+		}
+		stream << IO_NORM;
 	}
 	/**/
 
@@ -419,6 +422,11 @@ void compiler::AST::initTypeSignatureSet(TypeSignatureSet& typeSignatureSet) {
 int compiler::constructAST(AST::NodeList& outputList, AST::Scope& globalScope, TokenList& tokenList, CompilerSettings& compileSettings, std::ostream& stream) {
 	using namespace AST;
 
+	// Flags/settings
+	const bool isDebug = compileSettings.flags.hasFlags(FLAG_DEBUG);
+
+	if (isDebug) stream << '\n' << IO_DEBUG << "AST:\n";
+
 	TypeSignatureSet typeSignatureSet;
 	initTypeSignatureSet(typeSignatureSet);
 
@@ -450,7 +458,7 @@ int compiler::constructAST(AST::NodeList& outputList, AST::Scope& globalScope, T
 				} else { // Otherwise generate a new number
 					ids.emplace(std::pair<std::string, int>(*(ptr->str), numIds));
 					nodeList.emplace_back(new ExprIdentifier(numIds, ptr->line, ptr->column));
-					stream << "New ID (" << numIds << "): " << *(ptr->str) << '\n';
+					if (isDebug) stream << "New ID (" << numIds << "): " << *(ptr->str) << '\n';
 					numIds++;
 				}
 				// Delete the string
@@ -477,12 +485,16 @@ int compiler::constructAST(AST::NodeList& outputList, AST::Scope& globalScope, T
 	// Call the AST creator (this is a recursive function)
 	condenseAST(nodeList, outputList, globalScope, nodeList.begin(), NodeType::NONE, compileSettings, stream);
 
-	stream << '\n';
+	if (isDebug) {
+		stream << '\n';
 
-	// Print the output list (more like a tree at this point)
-	stream << "Global ";
-	globalScope.print(stream, 0);
-	outputList.print(stream, 0);
+		// Print the output list (more like a tree at this point)
+		stream << "Global ";
+		globalScope.print(stream, 0);
+		outputList.print(stream, 0);
+
+		stream << IO_NORM;
+	}
 
 	return 0;
 }
@@ -1063,15 +1075,24 @@ void compiler::makeBlockBytecode(AST::NodeList& block, RegManager& reg, AST::Sco
 		if (elem->isExpr) {
 			expr = static_cast<Expr*>(elem);
 			rid1 = makeExprBytecode(expr, reg, globalScope, scope, outputFile, byteCounter, compileSettings, stream);
+			// Temporary automatic printing of expressions
 			if (expr->evalType.isPrim()) {
-				if (expr->evalType.getPrim() == PrimType::FLOAT) {
-					opcode = opcode::R_PRNT_F;
-					CMP_WRITE(opcode, opcode_t);
-					CMP_WRITE(rid1, reg_t);
-				} else if (expr->evalType.getPrim() == PrimType::INT) {
-					opcode = opcode::R_PRNT_I;
-					CMP_WRITE(opcode, opcode_t);
-					CMP_WRITE(rid1, reg_t);
+				switch (expr->evalType.getPrim()) {
+					case PrimType::FLOAT:
+						opcode = opcode::R_PRNT_F;
+						CMP_WRITE(opcode, opcode_t);
+						CMP_WRITE(rid1, reg_t);
+						break;
+					case PrimType::INT:
+						opcode = opcode::R_PRNT_I;
+						CMP_WRITE(opcode, opcode_t);
+						CMP_WRITE(rid1, reg_t);
+						break;
+					case PrimType::CHAR:
+						opcode = opcode::PRNT_C;
+						CMP_WRITE(opcode, opcode_t);
+						CMP_WRITE(rid1, reg_t);
+						break;
 				}
 				opcode = opcode::PRNT_LN;
 				CMP_WRITE(opcode, opcode_t);

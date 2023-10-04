@@ -8,13 +8,15 @@ using std::cout;
 	reinterpret_cast<types::word_t*>(x)
 
 int vm::executor::exec(const char* const& path, ExecutorSettings& execSettings) {
-	cout << "Attempting to execute file \"" << path << "\"\n";
+	cout << IO_MAIN "Attempting to execute file \"" << path << "\"\n" IO_NORM;
 
 	std::fstream file;
 	file.open(path, std::ios::in | std::ios::binary);
 
 	try {
-		return vm::executor::exec_(file, execSettings, std::cout, std::cin);
+		int out = vm::executor::exec_(file, execSettings, std::cout, std::cin);
+		cout << IO_MAIN "Execution finished with code: " << out << IO_NORM IO_END;
+		return out;
 	} catch (ExecutorException& e) {
 		cout << IO_ERR "Error during execution at BYTE" << e.loc << " : " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {

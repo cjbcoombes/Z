@@ -34,5 +34,5 @@ movw W2, 1
 	idec W0
 	jmpnz @LOOP
 
-rprntw W1
+rprnti W1
 halt

@@ -3,28 +3,24 @@
   "Id": "8d47a112-13f0-497b-9919-373ca6b8f169",
   "Items": [
     {
+      "Id": "0f6faed0-ca51-4536-bf92-f25caa7e8ddc",
+      "Command": "-debug"
+    },
+    {
       "Id": "cb41e2cd-7501-4e36-b2eb-40883d114bbe",
-      "Command": "-debug -profile -compile \".\\CompilerExamples\\example1.z\" \".\\CompilerExamples\\example1.eze\""
+      "Command": "-compile \".\\CompilerExamples\\example1.z\" \".\\CompilerExamples\\example1.eze\""
     },
     {
       "Id": "c57038a6-d898-4977-ab65-179e7005c7a9",
-      "Command": "-debug -exec \".\\CompilerExamples\\example1.eze\""
+      "Command": "-exec \".\\CompilerExamples\\example1.eze\""
     },
     {
-      "Id": "dd07ce15-a182-4e30-b860-d7770abcfe78",
-      "Command": "-debug -profile -compile \".\\CompilerExamples\\example1.z\" \".\\CompilerExamples\\example1.eze\" -exec \".\\CompilerExamples\\example1.eze\""
+      "Id": "3126bc5a-e3f5-456e-84b4-5e0482ad432d",
+      "Command": "-assemble \".\\AssemblyExamples\\fibonacci_fast.azm\" \".\\AssemblyExamples\\fibonacci_fast.eze\""
     },
     {
-      "Id": "a43e8a8c-4113-4094-885a-6112449b6b1f",
-      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\simple_user_input.azm\" \".\\AssemblyExamples\\simple_user_input.eze\""
-    },
-    {
-      "Id": "0881402b-2f0a-4dcc-8eb6-8314694cee22",
-      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\fibonacci_recursive.azm\" \".\\AssemblyExamples\\fibonacci_recursive.eze\""
-    },
-    {
-      "Id": "3d4598c8-3a99-41c7-82be-777f607aaa3f",
-      "Command": "-debug -profile -asmandexec \".\\AssemblyExamples\\guessing_game.azm\" \".\\AssemblyExamples\\guessing_game.eze\""
+      "Id": "01761b7c-47ad-4991-a1d2-1664490ef367",
+      "Command": "-disassemble \".\\CompilerExamples\\example1.eze\""
     }
   ]
 }

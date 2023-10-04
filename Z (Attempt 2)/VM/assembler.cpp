@@ -11,7 +11,7 @@ using std::cout;
 #define ASM_WRITE(thing, type) outputFile.write(TO_CH_PT(thing), sizeof(type)); byteCounter += sizeof(type)
 
 int vm::assembler::assemble(const char* const& assemblyPath, const char* const& outputPath, AssemblerSettings& assemblerSettings) {
-	cout << "Attempting to assemble file \"" << assemblyPath << "\" into output file \"" << outputPath << "\"\n";
+	cout << IO_MAIN "Attempting to assemble file \"" << assemblyPath << "\" into output file \"" << outputPath << "\"\n" IO_NORM;
 
 	std::fstream assemblyFile, outputFile;
 
@@ -28,7 +28,9 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 	}
 
 	try {
-		return vm::assembler::assemble_(assemblyFile, outputFile, assemblerSettings, std::cout);
+		int out = vm::assembler::assemble_(assemblyFile, outputFile, assemblerSettings, std::cout);
+		cout << IO_MAIN "Assembly finished with code: " << out << IO_NORM IO_END;
+		return out;
 	} catch (AssemblerException& e) {
 		cout << IO_ERR "Error during assembly at LINE " << e.line << ", COLUMN " << e.column << " : " << e.what() << IO_NORM IO_END;
 	} catch (std::exception& e) {
@@ -36,6 +38,65 @@ int vm::assembler::assemble(const char* const& assemblyPath, const char* const& 
 	}
 
 	return 1;
+}
+
+int vm::assembler::disassemble(const char* const& path) {
+	cout << IO_MAIN "Attempting to disassemble file \"" << path << "\" to cout\n" IO_NORM;
+
+	std::fstream file;
+	file.open(path, std::ios::in | std::ios::binary);
+
+	if (!file.is_open()) {
+		cout << IO_ERR "Could not open file \"" << path << "\"" IO_NORM IO_END;
+		return 1;
+	}
+
+	int out = vm::assembler::disassemble_(file, std::cout);
+	cout << IO_MAIN "Disassembly finished with code: " << out << IO_NORM IO_END;
+
+	return out;
+}
+
+int vm::assembler::disassemble_(std::iostream& bytecodeFile, std::ostream& stream) {
+	using namespace types;
+	using namespace opcode;
+	
+	Bytecode bytecode(bytecodeFile);
+	bytecode.goto_(format::FIRST_INSTR_ADDR_LOCATION);
+	bytecode.goto_(*reinterpret_cast<types::word_t*>(bytecode.ip));
+
+	opcode_t opcode = 0;
+	reg_t rid1 = 0;
+	word_t word = 0;
+	byte_t byte = 0;
+
+	while (bytecode.ip < bytecode.end) {
+		bytecode.read<opcode_t>(&opcode);
+		stream << strings[opcode] << " ";
+		for (const int& arg : args[opcode]) {
+			switch (static_cast<ArgType>(arg)) {
+				case ArgType::ARG_WORD_REG:
+					stream << "Word-Reg ";
+					bytecode.read<reg_t>(&rid1);
+					break;
+				case ArgType::ARG_BYTE_REG:
+					stream << "Byte-Reg ";
+					bytecode.read<reg_t>(&rid1);
+					break;
+				case ArgType::ARG_WORD:
+					stream << "Word ";
+					bytecode.read<word_t>(&word);
+					break;
+				case ArgType::ARG_BYTE:
+					stream << "Byte ";
+					bytecode.read<byte_t>(&byte);
+					break;
+			}
+		}
+		stream << "\n";
+	}
+
+	return 0;
 }
 
 int vm::assembler::assemble_(std::iostream& assemblyFile, std::iostream& outputFile, AssemblerSettings& assemblerSettings, std::ostream& stream) {

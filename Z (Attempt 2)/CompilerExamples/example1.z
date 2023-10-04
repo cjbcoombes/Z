@@ -5,6 +5,7 @@ float.z = 7
 {
 x = y - 2
 float.z = x
+char.w = 65
 }
 z
 }
